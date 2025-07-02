@@ -9,7 +9,7 @@ A Git implementation written in Go.
 
 ### Build from Source
 ```bash
-git clone https://github.com/david0/git-go.git
+git clone https://github.com/unkn0wn-root/git-go.git
 cd git-go
 go build -o git-go
 ```
