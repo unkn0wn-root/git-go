@@ -1,6 +1,6 @@
 # git-go
 
-A Git implementation written in Go.
+A Git implementation written in Go
 
 ## Installation
 
