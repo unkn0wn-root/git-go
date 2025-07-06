@@ -126,7 +126,6 @@ func (rc *RemoteConfig) Load() error {
 					currentRemote.FetchURL = value
 					currentRemote.PushURL = value
 				case "fetch":
-					currentRemote.FetchURL = value
 				case "pushurl":
 					currentRemote.PushURL = value
 				}
