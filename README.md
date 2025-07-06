@@ -17,11 +17,6 @@ cd git-go
 go build -o git-go
 ```
 
-### Install Dependencies
-```bash
-go mod download
-```
-
 ## Usage
 
 ### Repository Management
