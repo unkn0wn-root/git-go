@@ -24,6 +24,16 @@ var (
 	ErrInvalidObjectFormat  = stderrors.New("invalid object format")
 	ErrPermissionDenied     = stderrors.New("permission denied")
 	ErrDirectoryNotEmpty    = stderrors.New("directory not empty")
+	ErrRemoteNotFound       = stderrors.New("remote not found")
+	ErrRemoteAlreadyExists  = stderrors.New("remote already exists")
+	ErrNetworkTimeout       = stderrors.New("network timeout")
+	ErrAuthenticationFailed = stderrors.New("authentication failed")
+	ErrPushRejected         = stderrors.New("push rejected")
+	ErrNonFastForward       = stderrors.New("non-fast-forward")
+	ErrUnrelatedHistories   = stderrors.New("unrelated histories")
+	ErrMergeConflict        = stderrors.New("merge conflict")
+	ErrInvalidURL           = stderrors.New("invalid URL")
+	ErrUnsupportedProtocol  = stderrors.New("unsupported protocol")
 )
 
 type GitError struct {
