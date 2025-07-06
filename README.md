@@ -88,7 +88,6 @@ go build -o git-go
 
 ## Testing
 
-### Running Tests
 ```bash
 go test ./...
 
