@@ -4,13 +4,14 @@ A Git implementation written in Go
 
 ## Installation
 
-### Download exec
+### Download
 Download the latest binary from the [GitHub releases page](https://github.com/unkn0wn-root/git-go/releases)
+
+### Build from Source
 
 ### Prerequisites
 - Go 1.23 or later
 
-### Build from Source
 ```bash
 git clone https://github.com/unkn0wn-root/git-go.git
 cd git-go
