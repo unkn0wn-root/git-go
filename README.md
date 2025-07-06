@@ -4,6 +4,9 @@ A Git implementation written in Go
 
 ## Installation
 
+### Download Binary
+Download the latest binary from the [GitHub releases page](https://github.com/unkn0wn-root/git-go/releases).
+
 ### Prerequisites
 - Go 1.23 or later
 
