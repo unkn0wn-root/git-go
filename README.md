@@ -1,10 +1,10 @@
 # git-go
 
-A Git implementation written in Go
+A Git implementation written in Go.
 
 ## Installation
 
-### Download Binary
+### Download
 Download the latest binary from the [GitHub releases page](https://github.com/unkn0wn-root/git-go/releases)
 
 ### Prerequisites
