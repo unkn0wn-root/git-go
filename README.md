@@ -4,7 +4,7 @@ A Git implementation written in Go
 
 ## Installation
 
-### Download
+### Download binary
 Download the latest binary from the [GitHub releases page](https://github.com/unkn0wn-root/git-go/releases)
 
 ### Build from Source
