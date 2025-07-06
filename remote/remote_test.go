@@ -25,10 +25,10 @@ func TestRemoteConfig(t *testing.T) {
 
 	t.Run("AddRemote", func(t *testing.T) {
 		rc := NewRemoteConfig(gitDir)
-		
+
 		err := rc.AddRemote("origin", "https://github.com/user/repo.git")
 		assert.NoError(t, err)
-		
+
 		remote, err := rc.GetRemote("origin")
 		assert.NoError(t, err)
 		assert.Equal(t, "origin", remote.Name)
@@ -39,65 +39,65 @@ func TestRemoteConfig(t *testing.T) {
 
 	t.Run("AddDuplicateRemote", func(t *testing.T) {
 		rc := NewRemoteConfig(gitDir)
-		
+
 		err := rc.AddRemote("origin", "https://github.com/user/repo.git")
 		assert.NoError(t, err)
-		
+
 		err = rc.AddRemote("origin", "https://github.com/user/other.git")
 		assert.Error(t, err)
 	})
 
 	t.Run("RemoveRemote", func(t *testing.T) {
 		rc := NewRemoteConfig(gitDir)
-		
+
 		err := rc.AddRemote("origin", "https://github.com/user/repo.git")
 		assert.NoError(t, err)
-		
+
 		err = rc.RemoveRemote("origin")
 		assert.NoError(t, err)
-		
+
 		_, err = rc.GetRemote("origin")
 		assert.Error(t, err)
 	})
 
 	t.Run("RemoveNonexistentRemote", func(t *testing.T) {
 		rc := NewRemoteConfig(gitDir)
-		
+
 		err := rc.RemoveRemote("nonexistent")
 		assert.Error(t, err)
 	})
 
 	t.Run("ListRemotes", func(t *testing.T) {
 		rc := NewRemoteConfig(gitDir)
-		
+
 		err := rc.AddRemote("origin", "https://github.com/user/repo.git")
 		assert.NoError(t, err)
-		
+
 		err = rc.AddRemote("upstream", "https://github.com/upstream/repo.git")
 		assert.NoError(t, err)
-		
+
 		remotes := rc.ListRemotes()
 		assert.Len(t, remotes, 2)
-		
+
 		names := make(map[string]bool)
 		for _, r := range remotes {
 			names[r.Name] = true
 		}
-		
+
 		assert.True(t, names["origin"])
 		assert.True(t, names["upstream"])
 	})
 
 	t.Run("SaveAndLoad", func(t *testing.T) {
 		rc := NewRemoteConfig(gitDir)
-		
+
 		err := rc.AddRemote("origin", "https://github.com/user/repo.git")
 		assert.NoError(t, err)
-		
+
 		rc2 := NewRemoteConfig(gitDir)
 		err = rc2.Load()
 		assert.NoError(t, err)
-		
+
 		remote, err := rc2.GetRemote("origin")
 		assert.NoError(t, err)
 		assert.Equal(t, "origin", remote.Name)
@@ -131,13 +131,13 @@ func TestAuthConfig(t *testing.T) {
 		os.Setenv("GITHUB_TOKEN", "test-token")
 		os.Setenv("GIT_USERNAME", "test-user")
 		os.Setenv("GIT_PASSWORD", "test-password")
-		
+
 		defer func() {
 			os.Unsetenv("GITHUB_TOKEN")
 			os.Unsetenv("GIT_USERNAME")
 			os.Unsetenv("GIT_PASSWORD")
 		}()
-		
+
 		auth, err := LoadAuthConfig()
 		assert.NoError(t, err)
 		assert.Equal(t, "test-token", auth.Token)
@@ -152,7 +152,7 @@ func TestNewHTTPTransport(t *testing.T) {
 			Username: "test-user",
 			Password: "test-password",
 		}
-		
+
 		transport, err := NewHTTPTransport("https://github.com/user/repo.git", auth)
 		assert.NoError(t, err)
 		assert.NotNil(t, transport)
@@ -170,7 +170,7 @@ func TestNewHTTPTransport(t *testing.T) {
 		auth := &AuthConfig{
 			Token: "test-token",
 		}
-		
+
 		transport, err := NewHTTPTransport("https://github.com/user/repo.git", auth)
 		assert.NoError(t, err)
 		assert.NotNil(t, transport)
@@ -184,7 +184,7 @@ func TestNewSSHTransport(t *testing.T) {
 		auth := &AuthConfig{
 			SSHKey: "/path/to/key",
 		}
-		
+
 		transport, err := NewSSHTransport("git@github.com:user/repo.git", auth)
 		assert.NoError(t, err)
 		assert.NotNil(t, transport)
@@ -212,7 +212,7 @@ func TestNewSSHTransport(t *testing.T) {
 
 // MockTransport implements the Transport interface for testing
 type MockTransport struct {
-	connectError    error
+	connectError   error
 	refs           map[string]string
 	packData       []byte
 	sendPackError  error
@@ -263,7 +263,7 @@ func (m *MockPackReader) Read(p []byte) (n int, err error) {
 	if m.offset >= len(m.data) {
 		return 0, io.EOF
 	}
-	
+
 	n = copy(p, m.data[m.offset:])
 	m.offset += n
 	return n, nil
@@ -277,37 +277,37 @@ func TestMockTransport(t *testing.T) {
 	t.Run("MockTransportBasicFunctionality", func(t *testing.T) {
 		mock := NewMockTransport()
 		ctx := context.Background()
-		
+
 		// Test Connect
 		err := mock.Connect(ctx, "test-url")
 		assert.NoError(t, err)
-		
+
 		// Test ListRefs with empty refs
 		refs, err := mock.ListRefs(ctx)
 		assert.NoError(t, err)
 		assert.Empty(t, refs)
-		
+
 		// Add some refs
 		mock.refs["refs/heads/main"] = "abcdef1234567890"
 		mock.refs["refs/heads/develop"] = "1234567890abcdef"
-		
+
 		refs, err = mock.ListRefs(ctx)
 		assert.NoError(t, err)
 		assert.Len(t, refs, 2)
 		assert.Equal(t, "abcdef1234567890", refs["refs/heads/main"])
-		
+
 		// Test FetchPack
 		mock.packData = []byte("test-pack-data")
 		packReader, err := mock.FetchPack(ctx, []string{"abcdef1234567890"}, []string{})
 		assert.NoError(t, err)
 		assert.NotNil(t, packReader)
-		
+
 		data := make([]byte, 14)
 		n, err := packReader.Read(data)
 		assert.NoError(t, err)
 		assert.Equal(t, 14, n)
 		assert.Equal(t, "test-pack-data", string(data))
-		
+
 		// Test SendPack
 		refUpdates := map[string]RefUpdate{
 			"refs/heads/main": {
@@ -317,25 +317,25 @@ func TestMockTransport(t *testing.T) {
 			},
 		}
 		packData := []byte("pack-data-to-send")
-		
+
 		err = mock.SendPack(ctx, refUpdates, packData)
 		assert.NoError(t, err)
 		assert.True(t, mock.sendPackCalled)
 		assert.Equal(t, refUpdates, mock.lastRefs)
 		assert.Equal(t, packData, mock.lastPackData)
 	})
-	
+
 	t.Run("MockTransportErrors", func(t *testing.T) {
 		mock := NewMockTransport()
 		mock.connectError = assert.AnError
 		mock.sendPackError = assert.AnError
-		
+
 		ctx := context.Background()
-		
+
 		// Test Connect error
 		err := mock.Connect(ctx, "test-url")
 		assert.Error(t, err)
-		
+
 		// Test SendPack error
 		err = mock.SendPack(ctx, map[string]RefUpdate{}, nil)
 		assert.Error(t, err)

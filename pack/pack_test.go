@@ -41,9 +41,9 @@ func TestPackProcessor(t *testing.T) {
 
 		// valid pack header: "PACK" + version 2 + 1 object
 		packHeader := []byte{
-			'P', 'A', 'C', 'K',  // signature
-			0x00, 0x00, 0x00, 0x02,  // version 2
-			0x00, 0x00, 0x00, 0x01,  // 1 object
+			'P', 'A', 'C', 'K', // signature
+			0x00, 0x00, 0x00, 0x02, // version 2
+			0x00, 0x00, 0x00, 0x01, // 1 object
 		}
 		processor.packData = packHeader
 
@@ -66,11 +66,11 @@ func TestPackObjectHeader(t *testing.T) {
 		// object type 3 (blob), size 10
 		// first byte: 0011 0000 | 1010 = 0x3A
 		// since size < 16, no continuation bit needed
-		objHeader := []byte{0x3A}  // type=3, size=10
+		objHeader := []byte{0x3A} // type=3, size=10
 		processor.packData = objHeader
 
 		objType, size, offset := processor.parseObjectHeader(0)
-		assert.Equal(t, 3, objType)  // OBJ_BLOB
+		assert.Equal(t, 3, objType) // OBJ_BLOB
 		assert.Equal(t, int64(10), size)
 		assert.Equal(t, 1, offset)
 	})
@@ -79,15 +79,15 @@ func TestPackObjectHeader(t *testing.T) {
 		// Object type 3 (blob), size 1000
 		// need multiple bytes for size
 		objHeader := []byte{
-			0xBB,  // type=3, size=11 (low 4 bits), continuation bit set
-			0x07,  // size continuation: 7 << 4 = 112, total = 11 + 112*16 = 1803...
+			0xBB, // type=3, size=11 (low 4 bits), continuation bit set
+			0x07, // size continuation: 7 << 4 = 112, total = 11 + 112*16 = 1803...
 		}
 		// noote: This is a simplified test - real Git uses more complex variable-length encoding
 		processor.packData = objHeader
 
 		objType, size, offset := processor.parseObjectHeader(0)
-		assert.Equal(t, 3, objType)  // OBJ_BLOB
-		assert.Greater(t, size, int64(10))  // Should be larger than simple case
+		assert.Equal(t, 3, objType)        // OBJ_BLOB
+		assert.Greater(t, size, int64(10)) // Should be larger than simple case
 		assert.Equal(t, 2, offset)
 	})
 }
@@ -111,7 +111,7 @@ func TestGitProtocolParser(t *testing.T) {
 
 		packet, err := parser.readPacket()
 		assert.NoError(t, err)
-		assert.Nil(t, packet)  // Flush packets return nil
+		assert.Nil(t, packet) // Flush packets return nil
 	})
 
 	t.Run("ParseSidebandPacket", func(t *testing.T) {
@@ -123,7 +123,7 @@ func TestGitProtocolParser(t *testing.T) {
 
 		data, err := parser.extractSidebandPackData(packetData)
 		assert.NoError(t, err)
-		assert.Nil(t, data)  // channel 2 is progress, returns nil
+		assert.Nil(t, data) // channel 2 is progress, returns nil
 	})
 
 	t.Run("ExtractPackFromSideband", func(t *testing.T) {
@@ -132,11 +132,11 @@ func TestGitProtocolParser(t *testing.T) {
 
 		// NAK packet + sideband packet with pack data
 		var protocolData bytes.Buffer
-		protocolData.WriteString("0008NAK\n")  // NAK response
-		protocolData.WriteString("0000")        // Flush packet
+		protocolData.WriteString("0008NAK\n") // NAK response
+		protocolData.WriteString("0000")      // Flush packet
 
 		// sideband packet with pack data (channel 1)
-		sidebandData := append([]byte{1}, packData...)  // Channel 1 + pack data
+		sidebandData := append([]byte{1}, packData...) // Channel 1 + pack data
 		packetLine := fmt.Sprintf("%04x", len(sidebandData)+4)
 		protocolData.WriteString(packetLine)
 		protocolData.Write(sidebandData)
@@ -171,8 +171,8 @@ func TestDeltaInstructions(t *testing.T) {
 
 		// simple delta: base_size + result_size + insert instruction
 		deltaData := []byte{
-			13,    // base size (13 bytes)
-			5,     // result size (5 bytes)
+			13,                         // base size (13 bytes)
+			5,                          // result size (5 bytes)
 			5, 'G', 'i', 't', '!', '!', // insert 5 bytes "Git!!"
 		}
 
@@ -187,7 +187,7 @@ func TestDeltaInstructions(t *testing.T) {
 
 	t.Run("ReadDeltaSize", func(t *testing.T) {
 		// test variable-length size encoding
-		data := []byte{0x85, 0x02}  // Size with continuation
+		data := []byte{0x85, 0x02} // Size with continuation
 		size, offset := processor.readDeltaSize(data, 0)
 
 		assert.Greater(t, size, int64(0))

@@ -46,11 +46,11 @@ type PackObject struct {
 	Data          []byte
 	Hash          string
 	Offset        int64
-	DeltaBaseHash string   // For REF_DELTA
-	DeltaOffset   int64    // For OFS_DELTA
+	DeltaBaseHash string // For REF_DELTA
+	DeltaOffset   int64  // For OFS_DELTA
 	IsDelta       bool
 	PackType      int
-	RawData       []byte   // Compressed or delta data
+	RawData       []byte // Compressed or delta data
 }
 
 type PackHeader struct {

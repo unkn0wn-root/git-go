@@ -91,7 +91,7 @@ func NewRemoteConfig(gitDir string) *RemoteConfig {
 
 func (rc *RemoteConfig) Load() error {
 	configPath := filepath.Join(rc.gitDir, "config")
-	
+
 	file, err := os.Open(configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -103,7 +103,7 @@ func (rc *RemoteConfig) Load() error {
 
 	scanner := bufio.NewScanner(file)
 	var currentRemote *Remote
-	
+
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" || strings.HasPrefix(line, "#") {
@@ -119,7 +119,7 @@ func (rc *RemoteConfig) Load() error {
 			if len(parts) == 2 {
 				key := strings.TrimSpace(parts[0])
 				value := strings.TrimSpace(parts[1])
-				
+
 				switch key {
 				case "url":
 					currentRemote.URL = value
@@ -139,7 +139,7 @@ func (rc *RemoteConfig) Load() error {
 
 func (rc *RemoteConfig) Save() error {
 	configPath := filepath.Join(rc.gitDir, "config")
-	
+
 	file, err := os.Create(configPath)
 	if err != nil {
 		return errors.NewGitError("config", configPath, err)
@@ -199,11 +199,11 @@ func (rc *RemoteConfig) ListRemotes() []*Remote {
 	for _, remote := range rc.remotes {
 		remotes = append(remotes, remote)
 	}
-	
+
 	sort.Slice(remotes, func(i, j int) bool {
 		return remotes[i].Name < remotes[j].Name
 	})
-	
+
 	return remotes
 }
 
@@ -222,7 +222,7 @@ func DetectProtocol(url string) Protocol {
 
 func CreateTransport(remoteURL string, auth *AuthConfig) (Transport, error) {
 	protocol := DetectProtocol(remoteURL)
-	
+
 	switch protocol {
 	case ProtocolHTTP, ProtocolHTTPS:
 		return NewHTTPTransport(remoteURL, auth)
@@ -348,7 +348,7 @@ func (t *HTTPTransport) ListRefs(ctx context.Context) (map[string]string, error)
 
 func (t *HTTPTransport) FetchPack(ctx context.Context, wants, haves []string) (PackReader, error) {
 	url := fmt.Sprintf("%s/git-upload-pack", t.baseURL.String())
-	
+
 	packRequest := buildPackRequest(wants, haves)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(packRequest))
 	if err != nil {
@@ -375,19 +375,19 @@ func (t *HTTPTransport) FetchPack(ctx context.Context, wants, haves []string) (P
 
 func (t *HTTPTransport) SendPack(ctx context.Context, refs map[string]RefUpdate, packData []byte) error {
 	url := fmt.Sprintf("%s/git-receive-pack", t.baseURL.String())
-	
+
 	// Build complete request with refs and pack data
 	var requestData bytes.Buffer
-	
+
 	// Add ref updates
 	refData := buildPushRequest(refs)
 	requestData.Write(refData)
-	
+
 	// Add pack data if provided
 	if packData != nil {
 		requestData.Write(packData)
 	}
-	
+
 	req, err := http.NewRequestWithContext(ctx, "POST", url, &requestData)
 	if err != nil {
 		return fmt.Errorf("failed to create push request: %w", err)
@@ -420,7 +420,7 @@ func (t *SSHTransport) Connect(ctx context.Context, url string) error {
 	if err != nil {
 		return fmt.Errorf("failed to connect via SSH: %w", err)
 	}
-	
+
 	// For now, just establish the connection
 	_ = conn
 	return nil
@@ -496,73 +496,73 @@ func (t *SSHTransport) Close() error {
 
 func parseGitRefs(reader io.Reader) (map[string]string, error) {
 	refs := make(map[string]string)
-	
+
 	data, err := io.ReadAll(reader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read refs data: %w", err)
 	}
-	
+
 	offset := 0
 	for offset < len(data) {
 		if offset+4 > len(data) {
 			break
 		}
-		
+
 		// Parse packet length
 		lengthStr := string(data[offset : offset+4])
 		length, err := strconv.ParseInt(lengthStr, 16, 32)
 		if err != nil {
 			break
 		}
-		
+
 		if length == 0 {
 			// Flush packet - skip and continue
 			offset += 4
 			continue
 		}
-		
+
 		if offset+int(length) > len(data) {
 			break
 		}
-		
+
 		// Extract packet payload
 		payload := data[offset+4 : offset+int(length)]
-		
+
 		// Skip service announcement
 		if bytes.HasPrefix(payload, []byte("# service=")) {
 			offset += int(length)
 			continue
 		}
-		
+
 		// Parse ref line: "hash refname\0capabilities" or "hash refname"
 		payloadStr := string(payload)
 		if strings.Contains(payloadStr, "\x00") {
 			// Remove capabilities part
 			payloadStr = payloadStr[:strings.Index(payloadStr, "\x00")]
 		}
-		
+
 		// Remove trailing newline if present
 		payloadStr = strings.TrimSuffix(payloadStr, "\n")
-		
+
 		parts := strings.SplitN(payloadStr, " ", 2)
 		if len(parts) == 2 {
 			hashStr := parts[0]
 			refName := strings.TrimSpace(parts[1])
-			
+
 			if hash.ValidateHash(hashStr) {
 				refs[refName] = hashStr
 			}
 		}
-		
+
 		offset += int(length)
 	}
-	
+
 	return refs, nil
 }
 
 func buildPackRequest(wants, haves []string) []byte {
 	var buf bytes.Buffer
-	
+
 	// Send want lines with capabilities on first want
 	for i, want := range wants {
 		if i == 0 {
@@ -576,46 +576,46 @@ func buildPackRequest(wants, haves []string) []byte {
 			buf.WriteString(pktLine)
 		}
 	}
-	
+
 	// Flush packet
 	buf.WriteString("0000")
-	
+
 	// Send have lines
 	for _, have := range haves {
 		line := fmt.Sprintf("have %s\n", have)
 		pktLine := fmt.Sprintf("%04x%s", len(line)+4, line)
 		buf.WriteString(pktLine)
 	}
-	
+
 	// Send done
 	buf.WriteString("0009done\n")
-	
+
 	return buf.Bytes()
 }
 
 func buildPushRequest(updates map[string]RefUpdate) []byte {
 	var buf bytes.Buffer
-	
+
 	first := true
 	for _, update := range updates {
 		var line string
 		if first {
 			// Include capabilities on first command
-			line = fmt.Sprintf("%s %s %s\x00report-status side-band-64k\n", 
+			line = fmt.Sprintf("%s %s %s\x00report-status side-band-64k\n",
 				update.OldHash, update.NewHash, update.RefName)
 			first = false
 		} else {
-			line = fmt.Sprintf("%s %s %s\n", 
+			line = fmt.Sprintf("%s %s %s\n",
 				update.OldHash, update.NewHash, update.RefName)
 		}
-		
+
 		pktLine := fmt.Sprintf("%04x%s", len(line)+4, line)
 		buf.WriteString(pktLine)
 	}
-	
+
 	// Flush packet
 	buf.WriteString("0000")
-	
+
 	return buf.Bytes()
 }
 

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/remote"
 	"github.com/unkn0wn-root/git-go/repository"
-	"github.com/spf13/cobra"
 )
 
 var remoteCmd = &cobra.Command{
@@ -153,7 +153,7 @@ var remoteShowCmd = &cobra.Command{
 		fmt.Printf("* remote %s\n", r.Name)
 		fmt.Printf("  Fetch URL: %s\n", r.FetchURL)
 		fmt.Printf("  Push  URL: %s\n", r.PushURL)
-		
+
 		return nil
 	},
 }
@@ -163,6 +163,6 @@ func init() {
 	remoteCmd.AddCommand(remoteRemoveCmd)
 	remoteCmd.AddCommand(remoteListCmd)
 	remoteCmd.AddCommand(remoteShowCmd)
-	
+
 	rootCmd.AddCommand(remoteCmd)
 }
