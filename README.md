@@ -5,7 +5,7 @@ A Git implementation written in Go
 ## Installation
 
 ### Prerequisites
-- Go 1.22 or later
+- Go 1.23 or later
 
 ### Build from Source
 ```bash
