@@ -1,6 +1,6 @@
 # git-go
 
-A basic Git implementation (no pull/push) written in Go. 
+A Git implementation written in Go
 
 ## Installation
 
@@ -71,6 +71,22 @@ go mod download
 # Path-specific reset
 ./git-go reset <commit> -- <file>...
 ./git-go reset HEAD -- file.txt
+```
+
+### Remote Operations (Protocol Client)
+```bash
+# Remote management
+./git-go remote add origin <url>
+./git-go remote list
+./git-go remote show origin
+
+## WIP (Not fully implemented yet. Working on it)
+# Clone repository structure (protocol client)
+./git-go clone <url> [directory]
+
+# Pull/Push protocol negotiation (protocol client)
+./git-go pull [remote] [branch]
+./git-go push [remote] [branch]
 ```
 
 ## Testing
