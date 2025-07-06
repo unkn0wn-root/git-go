@@ -19,7 +19,6 @@ go build -o git-go
 
 ## Usage
 
-### Repository Management
 ```bash
 # Initialize a new repository
 ./git-go init [directory]
