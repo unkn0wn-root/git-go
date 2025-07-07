@@ -67,7 +67,6 @@ func addFile(repo *repository.Repository, idx *index.Index, filePath string, gi 
 		return errors.NewGitError("add", filePath, err)
 	}
 
-	// Check if file should be ignored
 	if gi.IsIgnored(relPath, false) {
 		return nil
 	}
@@ -95,7 +94,7 @@ func addFile(repo *repository.Repository, idx *index.Index, filePath string, gi 
 
 	// Convert to Git-compatible path format (forward slashes)
 	gitPath := filepath.ToSlash(relPath)
-	if err := idx.Add(gitPath, hash, mode, info.Size(), info.ModTime()); err != nil {
+	if err := idx.AddWithFileInfo(gitPath, hash, mode, info); err != nil {
 		return errors.NewGitError("add", filePath, err)
 	}
 

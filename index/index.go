@@ -12,19 +12,27 @@ import (
 	"sort"
 	"strings"
 	"time"
+    "syscall"
 
 	"github.com/unkn0wn-root/git-go/errors"
 	"github.com/unkn0wn-root/git-go/hash"
 )
 
 type IndexEntry struct {
-	Path        string
-	Hash        string
-	Mode        uint32
-	Size        int64
-	ModTime     time.Time
-	Staged      bool
-	StageNumber int
+	Path         string
+	Hash         string
+	Mode         uint32
+	Size         int64
+	ModTime      time.Time
+	CreateTime   time.Time
+	CreateTimeNs uint32
+	ModTimeNs    uint32
+	Dev          uint32
+	Ino          uint32
+	UID          uint32
+	GID          uint32
+	Staged       bool
+	StageNumber  int
 }
 
 type Index struct {
@@ -51,7 +59,7 @@ func (idx *Index) Load() error {
 	}
 	defer file.Close()
 
-	// Git index format: 12-byte header + entries + checksum
+	// git index format: 12-byte header + entries + checksum
 	header := make([]byte, 12)
 	if _, err := io.ReadFull(file, header); err != nil {
 		if err == io.EOF {
@@ -60,12 +68,12 @@ func (idx *Index) Load() error {
 		return errors.NewIndexError(indexPath, fmt.Errorf("failed to read header: %w", err))
 	}
 
-	// Git index signature is "DIRC" (DirCache)
+	// git index signature is "DIRC" (DirCache)
 	if string(header[:4]) != "DIRC" {
 		return errors.NewIndexError(indexPath, fmt.Errorf("invalid index signature"))
 	}
 
-	// Only support index version 2
+	// only support index version 2
 	version := binary.BigEndian.Uint32(header[4:8])
 	if version != 2 {
 		return errors.NewIndexError(indexPath, fmt.Errorf("unsupported index version: %d", version))
@@ -85,7 +93,6 @@ func (idx *Index) Load() error {
 
 func (idx *Index) Save() error {
 	indexPath := filepath.Join(idx.gitDir, "index")
-
 	file, err := os.Create(indexPath)
 	if err != nil {
 		return errors.NewIndexError(indexPath, err)
@@ -129,12 +136,45 @@ func (idx *Index) Add(path, objHash string, mode uint32, size int64, modTime tim
 	}
 
 	idx.entries[path] = &IndexEntry{
-		Path:    path,
-		Hash:    objHash,
-		Mode:    mode,
-		Size:    size,
-		ModTime: modTime,
-		Staged:  true,
+		Path:         path,
+		Hash:         objHash,
+		Mode:         mode,
+		Size:         size,
+		ModTime:      modTime,
+		CreateTime:   modTime,
+		CreateTimeNs: uint32(modTime.Nanosecond()),
+		ModTimeNs:    uint32(modTime.Nanosecond()),
+		Dev:          0,
+		Ino:          0,
+		UID:          0,
+		GID:          0,
+		Staged:       true,
+	}
+	return nil
+}
+
+func (idx *Index) AddWithFileInfo(path, objHash string, mode uint32, fileInfo os.FileInfo) error {
+	if !hash.ValidateHash(objHash) {
+		return errors.NewIndexError(path, errors.ErrInvalidHash)
+	}
+
+	// get filesystem metadata
+	stat := fileInfo.Sys().(*syscall.Stat_t)
+
+	idx.entries[path] = &IndexEntry{
+		Path:         path,
+		Hash:         objHash,
+		Mode:         mode,
+		Size:         fileInfo.Size(),
+		ModTime:      fileInfo.ModTime(),
+		CreateTime:   time.Unix(stat.Ctimespec.Sec, 0), // Only use seconds for ctime
+		CreateTimeNs: uint32(stat.Ctimespec.Nsec),      // Store nanoseconds separately
+		ModTimeNs:    uint32(fileInfo.ModTime().Nanosecond()),
+		Dev:          uint32(stat.Dev),
+		Ino:          uint32(stat.Ino),
+		UID:          stat.Uid,
+		GID:          stat.Gid,
+		Staged:       true,
 	}
 	return nil
 }
@@ -161,6 +201,22 @@ func (idx *Index) GetAll() map[string]*IndexEntry {
 		}
 	}
 	return result
+}
+
+func (idx *Index) GetAllEntries() map[string]*IndexEntry {
+	result := make(map[string]*IndexEntry)
+	for k, v := range idx.entries {
+		result[k] = v
+	}
+	return result
+}
+
+func (idx *Index) MarkAsCommitted() {
+	for _, entry := range idx.entries {
+		if entry.Staged {
+			entry.Staged = false
+		}
+	}
 }
 
 func (idx *Index) IsStaged(path string) bool {
@@ -228,34 +284,33 @@ type dirNode struct {
 }
 
 func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
-	// Git index entry: 62-byte fixed header + variable-length path
+	// git index entry: 62-byte fixed header + variable-length path
 	header := make([]byte, 62)
 	if _, err := io.ReadFull(file, header); err != nil {
 		return nil, err
 	}
 
-	// Parse Git index entry fields (skip unused filesystem metadata)
-	_ = binary.BigEndian.Uint32(header[0:4]) // ctime
-	_ = binary.BigEndian.Uint32(header[4:8]) // cmtime
+	// parse Git index entry fields
+	ctime := binary.BigEndian.Uint32(header[0:4])
+	cmtime := binary.BigEndian.Uint32(header[4:8])
 	mtime := binary.BigEndian.Uint32(header[8:12])
 	mmtime := binary.BigEndian.Uint32(header[12:16])
-	_ = binary.BigEndian.Uint32(header[16:20]) // dev
-	_ = binary.BigEndian.Uint32(header[20:24]) // ino
+	dev := binary.BigEndian.Uint32(header[16:20])
+	ino := binary.BigEndian.Uint32(header[20:24])
 	mode := binary.BigEndian.Uint32(header[24:28])
-	_ = binary.BigEndian.Uint32(header[28:32]) // uid
-	_ = binary.BigEndian.Uint32(header[32:36]) // gid
+	uid := binary.BigEndian.Uint32(header[28:32])
+	gid := binary.BigEndian.Uint32(header[32:36])
 	size := binary.BigEndian.Uint32(header[36:40])
 	hashBytes := header[40:60]
 	flags := binary.BigEndian.Uint16(header[60:62])
-
 	hashStr := hex.EncodeToString(hashBytes)
 
-	// Path length is stored in lower 12 bits of flags
-	pathLen := flags & 0xFFF
 	var pathBytes []byte
 
+    // path length is stored in lower 12 bits of flags
+	pathLen := flags & 0xFFF
 	if pathLen == 0xFFF {
-		// Path >= 4095 chars: read until null terminator
+		// path >= 4095 chars: read until null terminator
 		var pathBuf bytes.Buffer
 		buf := make([]byte, 1)
 		for {
@@ -270,32 +325,47 @@ func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
 		pathBytes = pathBuf.Bytes()
 		pathLen = uint16(len(pathBytes))
 	} else {
+		// read path + null terminator
 		pathBytes = make([]byte, pathLen)
 		if _, err := io.ReadFull(file, pathBytes); err != nil {
 			return nil, err
 		}
+		// read and discard null terminator
+		nullByte := make([]byte, 1)
+		if _, err := io.ReadFull(file, nullByte); err != nil {
+			return nil, err
+		}
 	}
 
-	// Git index entries are padded to 8-byte alignment
-	entrySize := 62 + int(pathLen)
-	if pathLen == 0xFFF {
-		entrySize++ // For null terminator
-	}
+	// index entries are padded to 8-byte alignment
+	entrySize := 62 + int(pathLen) + 1 // +1 for null terminator
 	padding := (8 - (entrySize % 8)) % 8
 	if padding > 0 {
 		padBytes := make([]byte, padding)
 		io.ReadFull(file, padBytes)
 	}
 
-	modTime := time.Unix(int64(mtime), int64(mmtime))
+	modTime := time.Unix(int64(mtime), 0)
+	createTime := time.Unix(int64(ctime), 0)
+
+	// extract stage number from flags (bits 12-13)
+	stageNumber := int((flags >> 12) & 0x3)
 
 	return &IndexEntry{
-		Path:    string(pathBytes),
-		Hash:    hashStr,
-		Mode:    mode,
-		Size:    int64(size),
-		ModTime: modTime,
-		Staged:  true, // Files in the index are staged for commit
+		Path:         string(pathBytes),
+		Hash:         hashStr,
+		Mode:         mode,
+		Size:         int64(size),
+		ModTime:      modTime,
+		CreateTime:   createTime,
+		CreateTimeNs: cmtime,
+		ModTimeNs:    mmtime,
+		Dev:          dev,
+		Ino:          ino,
+		UID:          uid,
+		GID:          gid,
+		Staged:       true,
+		StageNumber:  stageNumber,
 	}, nil
 }
 
@@ -306,16 +376,14 @@ func (idx *Index) writeIndexEntry(buf *bytes.Buffer, entry *IndexEntry) error {
 	}
 
 	// fixed-size header (62 bytes)
-	// this should use actual filesystem values instead of fixed to zero
-	// but leave it at it is for now
-	ctime := uint32(entry.ModTime.Unix())
-	cmtime := uint32(0) // Nanoseconds
+	ctime := uint32(entry.CreateTime.Unix())
+	cmtime := entry.CreateTimeNs
 	mtime := uint32(entry.ModTime.Unix())
-	mmtime := uint32(0) // Nanoseconds
-	dev := uint32(0)    // Device
-	ino := uint32(0)    // Inode
-	uid := uint32(0)    // User ID
-	gid := uint32(0)    // Group ID
+	mmtime := entry.ModTimeNs
+	dev := entry.Dev
+	ino := entry.Ino
+	uid := entry.UID
+	gid := entry.GID
 	size := uint32(entry.Size)
 
 	binary.Write(buf, binary.BigEndian, ctime)
@@ -330,25 +398,22 @@ func (idx *Index) writeIndexEntry(buf *bytes.Buffer, entry *IndexEntry) error {
 	binary.Write(buf, binary.BigEndian, size)
 	buf.Write(hashBytes)
 
-	// flags (path length)
+	// flags (path length + stage number)
 	pathLen := len(entry.Path)
 	flags := uint16(pathLen)
 	if pathLen >= 0xFFF {
 		flags = 0xFFF
 	}
+	// Add stage number to flags (bits 12-13)
+	flags |= uint16(entry.StageNumber&0x3) << 12
 	binary.Write(buf, binary.BigEndian, flags)
 
 	// write path
 	buf.WriteString(entry.Path)
-	if pathLen >= 0xFFF {
-		buf.WriteByte(0) // Null terminator for long paths
-	}
+	buf.WriteByte(0) // Null terminator for all paths
 
 	// add padding to align to 8 bytes
-	entrySize := 62 + pathLen
-	if pathLen >= 0xFFF {
-		entrySize++ // For null terminator
-	}
+	entrySize := 62 + pathLen + 1 // +1 for null terminator
 	padding := (8 - (entrySize % 8)) % 8
 	for i := 0; i < padding; i++ {
 		buf.WriteByte(0)
