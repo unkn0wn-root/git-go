@@ -65,14 +65,11 @@ func (r *Repository) StoreObject(obj objects.Object) (string, error) {
 
 	data := objects.SerializeObject(obj)
 	objHash := hash.ComputeSHA1(data)
-
 	objPath := r.objectPath(objHash)
 	objDir := filepath.Dir(objPath)
-
 	if err := os.MkdirAll(objDir, 0755); err != nil {
 		return "", errors.NewObjectError(objHash, obj.Type().String(), err)
 	}
-
 	if _, err := os.Stat(objPath); err == nil {
 		return objHash, nil
 	}
@@ -269,7 +266,7 @@ func (r *Repository) CheckoutTreeWithIndex(tree *objects.Tree, idx *index.Index,
 				return nil, fmt.Errorf("failed to stat file %s: %w", fullPath, err)
 			}
 
-			if err := idx.Add(gitPath, entry.Hash, uint32(entry.Mode), stat.Size(), stat.ModTime()); err != nil {
+			if err := idx.AddWithFileInfo(gitPath, entry.Hash, uint32(entry.Mode), stat); err != nil {
 				return nil, fmt.Errorf("failed to add %s to index: %w", gitPath, err)
 			}
 

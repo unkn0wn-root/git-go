@@ -76,7 +76,9 @@ func CreateCommit(repo *repository.Repository, opts CommitOptions) (string, erro
 		return "", errors.NewGitError("commit", "", err)
 	}
 
-	idx.Clear()
+	// after commit, mark staged files as committed but keep them in index
+	idx.MarkAsCommitted()
+
 	if err := idx.Save(); err != nil {
 		return "", errors.NewGitError("commit", "", err)
 	}
@@ -145,3 +147,4 @@ func getSignatures(authorName, authorEmail string) (*objects.Signature, *objects
 
 	return author, committer, nil
 }
+
