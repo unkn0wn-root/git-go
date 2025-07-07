@@ -280,11 +280,6 @@ func getWorkingFiles(repo *repository.Repository) (map[string]string, error) {
 			return nil
 		}
 
-		// Skip hidden files except .gitignore
-		if strings.HasPrefix(d.Name(), ".") && d.Name() != ".gitignore" {
-			return nil
-		}
-
 		relPath, err := filepath.Rel(repo.WorkDir, path)
 		if err != nil {
 			return err
