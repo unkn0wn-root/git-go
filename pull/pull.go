@@ -406,9 +406,11 @@ func (p *Puller) updateWorkingDirectory(commitHash string, result *PullResult) e
 
 	p.index.Clear()
 
-    if err := p.checkoutTreeWithIndex(tree, "", result); err != nil {
+    updatedFiles, err := p.repo.CheckoutTreeWithIndex(tree, p.index, "")
+	if err != nil {
 		return err
 	}
+	result.UpdatedFiles = append(result.UpdatedFiles, updatedFiles...)
 	if err := p.index.Save(); err != nil {
 		return fmt.Errorf("failed to save index: %w", err)
 	}
@@ -416,72 +418,6 @@ func (p *Puller) updateWorkingDirectory(commitHash string, result *PullResult) e
 	return nil
 }
 
-func (p *Puller) checkoutTreeWithIndex(tree *objects.Tree, prefix string, result *PullResult) error {
-	for _, entry := range tree.Entries() {
-		fullPath := filepath.Join(p.repo.WorkDir, prefix, entry.Name)
-		relativePath := filepath.Join(prefix, entry.Name)
-		gitPath := filepath.ToSlash(relativePath)
-
-		switch entry.Mode {
-		case objects.FileModeTree:
-			if err := os.MkdirAll(fullPath, 0755); err != nil {
-				return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
-			}
-
-			subTreeObj, err := p.repo.LoadObject(entry.Hash)
-			if err != nil {
-				continue // Skip missing subtrees
-			}
-
-			subTree, ok := subTreeObj.(*objects.Tree)
-			if !ok {
-				return fmt.Errorf("subtree object is not a tree")
-			}
-
-			if err := p.checkoutTreeWithIndex(subTree, relativePath, result); err != nil {
-				return err
-			}
-
-		case objects.FileModeBlob, objects.FileModeExecutable:
-			blobObj, err := p.repo.LoadObject(entry.Hash)
-			if err != nil {
-				continue // Skip missing blobs
-			}
-
-			blob, ok := blobObj.(*objects.Blob)
-			if !ok {
-				return fmt.Errorf("blob object is not a blob")
-			}
-
-			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-				return fmt.Errorf("failed to create directory for %s: %w", fullPath, err)
-			}
-
-			mode := os.FileMode(0644)
-			if entry.Mode == objects.FileModeExecutable {
-				mode = os.FileMode(0755)
-			}
-
-			if err := os.WriteFile(fullPath, blob.Content(), mode); err != nil {
-				return fmt.Errorf("failed to write file %s: %w", fullPath, err)
-			}
-
-			stat, err := os.Stat(fullPath)
-			if err != nil {
-				return fmt.Errorf("failed to stat file %s: %w", fullPath, err)
-			}
-
-			// add to index (these files are now the current state after pull)
-			if err := p.index.Add(gitPath, entry.Hash, uint32(entry.Mode), stat.Size(), stat.ModTime()); err != nil {
-				return fmt.Errorf("failed to add %s to index: %w", gitPath, err)
-			}
-
-			result.UpdatedFiles = append(result.UpdatedFiles, gitPath)
-		}
-	}
-
-	return nil
-}
 
 func (p *Puller) checkoutTree(tree *objects.Tree, prefix string, result *PullResult) error {
 	for _, entry := range tree.Entries() {
