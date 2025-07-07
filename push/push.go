@@ -17,6 +17,17 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
+type RefUpdateStatus int
+
+const (
+	RefUpdateOK RefUpdateStatus = iota
+	RefUpdateRejected
+	RefUpdateError
+	RefUpdateUpToDate
+	RefUpdateFastForward
+	RefUpdateForced
+)
+
 type PushOptions struct {
 	Remote         string
 	Branch         string
@@ -45,23 +56,12 @@ type PushResult struct {
 }
 
 type RefUpdateResult struct {
-	RefName   string
-	OldHash   string
-	NewHash   string
-	Status    RefUpdateStatus
-	Message   string
+	RefName string
+	OldHash string
+	NewHash string
+	Status  RefUpdateStatus
+	Message string
 }
-
-type RefUpdateStatus int
-
-const (
-	RefUpdateOK RefUpdateStatus = iota
-	RefUpdateRejected
-	RefUpdateError
-	RefUpdateUpToDate
-	RefUpdateFastForward
-	RefUpdateForced
-)
 
 func (s RefUpdateStatus) String() string {
 	switch s {
@@ -172,11 +172,11 @@ func (p *Pusher) Push(ctx context.Context, options PushOptions) (*PushResult, er
 
 		if remoteCommit == localCommit {
 			result.UpdatedRefs[remoteBranchRef] = RefUpdateResult{
-				RefName:   remoteBranchRef,
-				OldHash:   remoteCommit,
-				NewHash:   localCommit,
-				Status:    RefUpdateUpToDate,
-				Message:   "Everything up-to-date",
+				RefName: remoteBranchRef,
+				OldHash: remoteCommit,
+				NewHash: localCommit,
+				Status:  RefUpdateUpToDate,
+				Message: "Everything up-to-date",
 			}
 			return result, nil
 		}
@@ -407,7 +407,6 @@ func (p *Pusher) collectTreeObjects(tree *objects.Tree, objectsToSend *[]string,
 		}
 	}
 }
-
 
 func (p *Pusher) createPackFile(objectHashes []string) ([]byte, error) {
 	var packBuffer bytes.Buffer

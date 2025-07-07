@@ -10,11 +10,11 @@ import (
 	"time"
 
 	"github.com/unkn0wn-root/git-go/errors"
+	"github.com/unkn0wn-root/git-go/index"
 	"github.com/unkn0wn-root/git-go/objects"
 	"github.com/unkn0wn-root/git-go/pack"
 	"github.com/unkn0wn-root/git-go/remote"
 	"github.com/unkn0wn-root/git-go/repository"
-    "github.com/unkn0wn-root/git-go/index"
 )
 
 type PullStrategy int
@@ -37,25 +37,25 @@ type PullOptions struct {
 }
 
 type PullResult struct {
-	Strategy        PullStrategy
-	OldCommit       string
-	NewCommit       string
-	UpdatedRefs     map[string]string
-	ConflictFiles   []string
-	FastForward     bool
-	CommitsAhead    int
-	CommitsBehind   int
-	MergeCommit     string
-	UpdatedFiles    []string
-	DeletedFiles    []string
-	AddedFiles      []string
+	Strategy      PullStrategy
+	OldCommit     string
+	NewCommit     string
+	UpdatedRefs   map[string]string
+	ConflictFiles []string
+	FastForward   bool
+	CommitsAhead  int
+	CommitsBehind int
+	MergeCommit   string
+	UpdatedFiles  []string
+	DeletedFiles  []string
+	AddedFiles    []string
 }
 
 type Puller struct {
 	repo      *repository.Repository
 	transport remote.Transport
 	auth      *remote.AuthConfig
-    index     *index.Index
+	index     *index.Index
 }
 
 func NewPuller(repo *repository.Repository) *Puller {
@@ -126,15 +126,14 @@ func (p *Puller) Pull(ctx context.Context, options PullOptions) (*PullResult, er
 		return nil, fmt.Errorf("failed to get local HEAD: %w", err)
 	}
 
-
 	if localCommit == remoteCommit {
 		return &PullResult{
-			Strategy:     options.Strategy,
-			OldCommit:    localCommit,
-			NewCommit:    remoteCommit,
-			UpdatedRefs:  make(map[string]string),
-			FastForward:  true,
-			CommitsAhead: 0,
+			Strategy:      options.Strategy,
+			OldCommit:     localCommit,
+			NewCommit:     remoteCommit,
+			UpdatedRefs:   make(map[string]string),
+			FastForward:   true,
+			CommitsAhead:  0,
 			CommitsBehind: 0,
 		}, nil
 	}
@@ -406,7 +405,7 @@ func (p *Puller) updateWorkingDirectory(commitHash string, result *PullResult) e
 
 	p.index.Clear()
 
-    updatedFiles, err := p.repo.CheckoutTreeWithIndex(tree, p.index, "")
+	updatedFiles, err := p.repo.CheckoutTreeWithIndex(tree, p.index, "")
 	if err != nil {
 		return err
 	}
@@ -417,7 +416,6 @@ func (p *Puller) updateWorkingDirectory(commitHash string, result *PullResult) e
 
 	return nil
 }
-
 
 func (p *Puller) checkoutTree(tree *objects.Tree, prefix string, result *PullResult) error {
 	for _, entry := range tree.Entries() {

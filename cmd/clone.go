@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/clone"
 	"github.com/spf13/cobra"
+	"github.com/unkn0wn-root/git-go/clone"
 )
 
 var (

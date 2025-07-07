@@ -131,7 +131,6 @@ func (p *PackProcessor) ProcessPack(reader io.Reader) error {
 	return nil
 }
 
-
 func (p *PackProcessor) extractPackFromPacketLine(data []byte) ([]byte, error) {
 	// check if this is already a pack file
 	if len(data) >= 4 && string(data[:4]) == "PACK" {

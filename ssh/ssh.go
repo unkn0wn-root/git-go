@@ -16,10 +16,10 @@ import (
 )
 
 type SSHClient struct {
-	client *ssh.Client
-	host   string
-	port   string
-	user   string
+	client  *ssh.Client
+	host    string
+	port    string
+	user    string
 	keyPath string
 }
 

@@ -54,14 +54,14 @@ func TestIsIgnored(t *testing.T) {
 		isDir    bool
 		expected bool
 	}{
-		{"file.log", false, true},     // Matches *.log
-		{"file.tmp", false, true},     // Matches *.tmp
-		{"file.txt", false, false},    // No match
-		{"build", true, true},         // Matches /build/ (directory)
+		{"file.log", false, true},        // Matches *.log
+		{"file.tmp", false, true},        // Matches *.tmp
+		{"file.txt", false, false},       // No match
+		{"build", true, true},            // Matches /build/ (directory)
 		{"build/file.txt", false, false}, // Directory pattern doesn't match files
-		{"important.log", false, false},   // Negated by !important.log
-		{"src/file.log", false, true},     // *.log matches anywhere
-		{".DS_Store", false, true},        // Global pattern
+		{"important.log", false, false},  // Negated by !important.log
+		{"src/file.log", false, true},    // *.log matches anywhere
+		{".DS_Store", false, true},       // Global pattern
 	}
 
 	for _, tt := range tests {

@@ -4,9 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/diff"
 	"github.com/unkn0wn-root/git-go/repository"
-	"github.com/spf13/cobra"
 )
 
 var (

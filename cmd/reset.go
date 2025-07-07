@@ -3,10 +3,10 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/discovery"
 	"github.com/unkn0wn-root/git-go/repository"
 	"github.com/unkn0wn-root/git-go/reset"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -96,7 +96,7 @@ func init() {
 func isPath(s string) bool {
 	// simple heuristic: if it contains a slash or starts with a dot, it's probably a path
 	// I know, in full impl. this would be more sophisticated but just for learning purposes
-    // it is what it is
+	// it is what it is
 	return len(s) > 0 && (s[0] == '.' || s[0] == '/' || containsSlash(s))
 }
 

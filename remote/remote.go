@@ -23,6 +23,15 @@ import (
 	"github.com/unkn0wn-root/git-go/ssh"
 )
 
+type Protocol int
+
+const (
+	ProtocolHTTP Protocol = iota
+	ProtocolHTTPS
+	ProtocolSSH
+	ProtocolGit
+)
+
 type Remote struct {
 	Name     string
 	URL      string
@@ -34,15 +43,6 @@ type RemoteConfig struct {
 	remotes map[string]*Remote
 	gitDir  string
 }
-
-type Protocol int
-
-const (
-	ProtocolHTTP Protocol = iota
-	ProtocolHTTPS
-	ProtocolSSH
-	ProtocolGit
-)
 
 type Transport interface {
 	Connect(ctx context.Context, url string) error

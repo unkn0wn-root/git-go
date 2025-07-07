@@ -18,13 +18,13 @@ import (
 )
 
 type IndexEntry struct {
-	Path         string
-	Hash         string
-	Mode         uint32
-	Size         int64
-	ModTime      time.Time
-	Staged       bool
-	StageNumber  int
+	Path        string
+	Hash        string
+	Mode        uint32
+	Size        int64
+	ModTime     time.Time
+	Staged      bool
+	StageNumber int
 }
 
 type Index struct {
@@ -103,8 +103,8 @@ func (idx *Index) Save() error {
 	})
 
 	var buf bytes.Buffer
-	buf.WriteString("DIRC")                                        // Signature
-	binary.Write(&buf, binary.BigEndian, uint32(2))                // Version
+	buf.WriteString("DIRC")                                       // Signature
+	binary.Write(&buf, binary.BigEndian, uint32(2))               // Version
 	binary.Write(&buf, binary.BigEndian, uint32(len(allEntries))) // Entry count
 
 	for _, entry := range allEntries {
@@ -138,7 +138,6 @@ func (idx *Index) Add(path, objHash string, mode uint32, size int64, modTime tim
 	}
 	return nil
 }
-
 
 func (idx *Index) Remove(path string) error {
 	if _, exists := idx.entries[path]; !exists {
@@ -236,8 +235,8 @@ func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
 	}
 
 	// Parse Git index entry fields (skip unused filesystem metadata)
-	_ = binary.BigEndian.Uint32(header[0:4])   // ctime
-	_ = binary.BigEndian.Uint32(header[4:8])   // cmtime
+	_ = binary.BigEndian.Uint32(header[0:4]) // ctime
+	_ = binary.BigEndian.Uint32(header[4:8]) // cmtime
 	mtime := binary.BigEndian.Uint32(header[8:12])
 	mmtime := binary.BigEndian.Uint32(header[12:16])
 	_ = binary.BigEndian.Uint32(header[16:20]) // dev
@@ -307,8 +306,8 @@ func (idx *Index) writeIndexEntry(buf *bytes.Buffer, entry *IndexEntry) error {
 	}
 
 	// fixed-size header (62 bytes)
-    // this should use actual filesystem values instead of fixed to zero
-    // but leave it at it is for now
+	// this should use actual filesystem values instead of fixed to zero
+	// but leave it at it is for now
 	ctime := uint32(entry.ModTime.Unix())
 	cmtime := uint32(0) // Nanoseconds
 	mtime := uint32(entry.ModTime.Unix())
@@ -360,9 +359,9 @@ func (idx *Index) writeIndexEntry(buf *bytes.Buffer, entry *IndexEntry) error {
 
 func (idx *Index) writeTreeRecursive(node *dirNode) (string, error) {
 	type treeEntry struct {
-		mode uint32
-		name string
-		hash string
+		mode  uint32
+		name  string
+		hash  string
 		isDir bool
 	}
 

@@ -58,16 +58,16 @@ type MockCommit struct {
 	data    []byte
 }
 
-func (c *MockCommit) Hash() string                    { return c.hash }
-func (c *MockCommit) SetHash(h string)               { c.hash = h }
-func (c *MockCommit) Tree() string                   { return c.tree }
-func (c *MockCommit) Parents() []string              { return c.parents }
-func (c *MockCommit) Author() *objects.Signature     { return c.author }
-func (c *MockCommit) Committer() *objects.Signature  { return c.author } // Use same as author for simplicity
-func (c *MockCommit) Message() string                { return "Test commit message" }
-func (c *MockCommit) Type() objects.ObjectType       { return objects.ObjectTypeCommit }
-func (c *MockCommit) Size() int64                    { return int64(len(c.data)) }
-func (c *MockCommit) Data() []byte                   { return c.data }
+func (c *MockCommit) Hash() string                  { return c.hash }
+func (c *MockCommit) SetHash(h string)              { c.hash = h }
+func (c *MockCommit) Tree() string                  { return c.tree }
+func (c *MockCommit) Parents() []string             { return c.parents }
+func (c *MockCommit) Author() *objects.Signature    { return c.author }
+func (c *MockCommit) Committer() *objects.Signature { return c.author } // Use same as author for simplicity
+func (c *MockCommit) Message() string               { return "Test commit message" }
+func (c *MockCommit) Type() objects.ObjectType      { return objects.ObjectTypeCommit }
+func (c *MockCommit) Size() int64                   { return int64(len(c.data)) }
+func (c *MockCommit) Data() []byte                  { return c.data }
 
 type MockTree struct {
 	entries []objects.TreeEntry
@@ -75,12 +75,12 @@ type MockTree struct {
 	data    []byte
 }
 
-func (t *MockTree) Entries() []objects.TreeEntry     { return t.entries }
-func (t *MockTree) Hash() string                     { return t.hash }
-func (t *MockTree) SetHash(h string)                 { t.hash = h }
-func (t *MockTree) Type() objects.ObjectType         { return objects.ObjectTypeTree }
-func (t *MockTree) Size() int64                      { return int64(len(t.data)) }
-func (t *MockTree) Data() []byte                     { return t.data }
+func (t *MockTree) Entries() []objects.TreeEntry { return t.entries }
+func (t *MockTree) Hash() string                 { return t.hash }
+func (t *MockTree) SetHash(h string)             { t.hash = h }
+func (t *MockTree) Type() objects.ObjectType     { return objects.ObjectTypeTree }
+func (t *MockTree) Size() int64                  { return int64(len(t.data)) }
+func (t *MockTree) Data() []byte                 { return t.data }
 
 type MockBlob struct {
 	content []byte
@@ -88,13 +88,12 @@ type MockBlob struct {
 	data    []byte
 }
 
-func (b *MockBlob) Content() []byte                   { return b.content }
-func (b *MockBlob) Hash() string                     { return b.hash }
-func (b *MockBlob) SetHash(h string)                 { b.hash = h }
-func (b *MockBlob) Type() objects.ObjectType         { return objects.ObjectTypeBlob }
-func (b *MockBlob) Size() int64                      { return int64(len(b.content)) }
-func (b *MockBlob) Data() []byte                     { return b.data }
-
+func (b *MockBlob) Content() []byte          { return b.content }
+func (b *MockBlob) Hash() string             { return b.hash }
+func (b *MockBlob) SetHash(h string)         { b.hash = h }
+func (b *MockBlob) Type() objects.ObjectType { return objects.ObjectTypeBlob }
+func (b *MockBlob) Size() int64              { return int64(len(b.content)) }
+func (b *MockBlob) Data() []byte             { return b.data }
 
 func createRepositoryWrapper(mock *MockRepository) repositoryInterface {
 	return &repositoryWrapper{mock: mock}
@@ -457,11 +456,11 @@ func BenchmarkBlameFile(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		commitHash, err := repo.GetHead()
-	if err != nil {
-		b.Fatalf("Failed to get HEAD: %v", err)
-	}
+		if err != nil {
+			b.Fatalf("Failed to get HEAD: %v", err)
+		}
 
-	_, err = BlameFile(repo, "test.txt", commitHash)
+		_, err = BlameFile(repo, "test.txt", commitHash)
 		if err != nil {
 			b.Fatalf("Unexpected error: %v", err)
 		}

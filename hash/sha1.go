@@ -23,13 +23,13 @@ func ValidateHash(hash string) bool {
 	if len(hash) != 40 {
 		return false
 	}
-	
+
 	for _, char := range hash {
 		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
 			return false
 		}
 	}
-	
+
 	return true
 }
 

@@ -35,7 +35,7 @@ func TestCloner(t *testing.T) {
 
 func TestInferDirectoryName(t *testing.T) {
 	cloner := NewCloner()
-	
+
 	tests := []struct {
 		url      string
 		expected string
@@ -59,13 +59,13 @@ func TestInferDirectoryName(t *testing.T) {
 
 func TestDetermineDefaultBranch(t *testing.T) {
 	cloner := NewCloner()
-	
+
 	t.Run("PreferredBranchExists", func(t *testing.T) {
 		refs := map[string]string{
 			"refs/heads/main":    "abc123",
 			"refs/heads/develop": "def456",
 		}
-		
+
 		result := cloner.determineDefaultBranch(refs, "develop")
 		assert.Equal(t, "develop", result)
 	})
@@ -75,7 +75,7 @@ func TestDetermineDefaultBranch(t *testing.T) {
 			"refs/heads/main":    "abc123",
 			"refs/heads/develop": "def456",
 		}
-		
+
 		result := cloner.determineDefaultBranch(refs, "nonexistent")
 		assert.Equal(t, "", result)
 	})
@@ -85,7 +85,7 @@ func TestDetermineDefaultBranch(t *testing.T) {
 			"refs/heads/main":    "abc123",
 			"refs/heads/develop": "def456",
 		}
-		
+
 		result := cloner.determineDefaultBranch(refs, "")
 		assert.Equal(t, "main", result)
 	})
@@ -95,7 +95,7 @@ func TestDetermineDefaultBranch(t *testing.T) {
 			"refs/heads/master":  "abc123",
 			"refs/heads/develop": "def456",
 		}
-		
+
 		result := cloner.determineDefaultBranch(refs, "")
 		assert.Equal(t, "master", result)
 	})
@@ -105,7 +105,7 @@ func TestDetermineDefaultBranch(t *testing.T) {
 			"refs/heads/feature": "abc123",
 			"refs/heads/develop": "def456",
 		}
-		
+
 		result := cloner.determineDefaultBranch(refs, "")
 		assert.Contains(t, []string{"feature", "develop"}, result)
 	})
@@ -116,7 +116,7 @@ func TestDetermineDefaultBranch(t *testing.T) {
 			"refs/heads/main":    "abc123",
 			"refs/heads/develop": "def456",
 		}
-		
+
 		result := cloner.determineDefaultBranch(refs, "")
 		assert.Equal(t, "main", result)
 	})
@@ -129,7 +129,7 @@ func TestCloneValidation(t *testing.T) {
 	t.Run("EmptyURL", func(t *testing.T) {
 		opts := DefaultCloneOptions()
 		opts.URL = ""
-		
+
 		_, err := cloner.Clone(ctx, opts)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "repository URL is required")
@@ -139,11 +139,11 @@ func TestCloneValidation(t *testing.T) {
 		tempDir := t.TempDir()
 		existingFile := filepath.Join(tempDir, "existing.txt")
 		require.NoError(t, os.WriteFile(existingFile, []byte("content"), 0644))
-		
+
 		opts := DefaultCloneOptions()
 		opts.URL = "https://github.com/user/repo.git"
 		opts.Directory = tempDir
-		
+
 		_, err := cloner.Clone(ctx, opts)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "already exists and is not an empty directory")
@@ -152,12 +152,12 @@ func TestCloneValidation(t *testing.T) {
 	t.Run("InvalidURL", func(t *testing.T) {
 		tempDir := t.TempDir()
 		targetDir := filepath.Join(tempDir, "newrepo")
-		
+
 		opts := DefaultCloneOptions()
 		opts.URL = "invalid-url"
 		opts.Directory = targetDir
 		opts.Timeout = 1 * time.Second
-		
+
 		_, err := cloner.Clone(ctx, opts)
 		assert.Error(t, err)
 	})
@@ -168,7 +168,7 @@ func TestCloneResult(t *testing.T) {
 		result := &CloneResult{
 			FetchedRefs: make(map[string]string),
 		}
-		
+
 		assert.NotNil(t, result.FetchedRefs)
 		assert.Empty(t, result.FetchedRefs)
 		assert.False(t, result.CheckedOut)

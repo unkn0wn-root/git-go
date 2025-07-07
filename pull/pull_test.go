@@ -27,11 +27,11 @@ func TestPullOptions(t *testing.T) {
 
 func TestPuller(t *testing.T) {
 	tempDir := t.TempDir()
-	
+
 	t.Run("NewPuller", func(t *testing.T) {
 		repo := repository.New(tempDir)
 		puller := NewPuller(repo)
-		
+
 		assert.NotNil(t, puller)
 		assert.Equal(t, repo, puller.repo)
 		assert.NotNil(t, puller.auth)
@@ -40,10 +40,10 @@ func TestPuller(t *testing.T) {
 	t.Run("PullWithoutRepository", func(t *testing.T) {
 		repo := repository.New(tempDir)
 		puller := NewPuller(repo)
-		
+
 		ctx := context.Background()
 		opts := DefaultPullOptions()
-		
+
 		_, err := puller.Pull(ctx, opts)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "remote 'origin' not found")
@@ -79,7 +79,7 @@ func TestPullResult(t *testing.T) {
 			DeletedFiles:  []string{},
 			AddedFiles:    []string{},
 		}
-		
+
 		assert.Equal(t, PullMerge, result.Strategy)
 		assert.Empty(t, result.UpdatedRefs)
 		assert.Empty(t, result.ConflictFiles)
@@ -95,19 +95,19 @@ func TestPullResult(t *testing.T) {
 func setupTestRepository(t *testing.T) (*repository.Repository, string) {
 	tempDir := t.TempDir()
 	repo := repository.New(tempDir)
-	
+
 	require.NoError(t, repo.Init())
-	
+
 	gitDir := filepath.Join(tempDir, ".git")
 	configPath := filepath.Join(gitDir, "config")
-	
+
 	config := `[remote "origin"]
 	url = https://github.com/test/repo.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 `
-	
+
 	require.NoError(t, os.WriteFile(configPath, []byte(config), 0644))
-	
+
 	return repo, tempDir
 }
 
@@ -115,11 +115,11 @@ func TestPullerIntegration(t *testing.T) {
 	t.Run("PullFromNonexistentRemote", func(t *testing.T) {
 		repo, _ := setupTestRepository(t)
 		puller := NewPuller(repo)
-		
+
 		ctx := context.Background()
 		opts := DefaultPullOptions()
 		opts.Remote = "nonexistent"
-		
+
 		_, err := puller.Pull(ctx, opts)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "remote 'nonexistent' not found")
@@ -128,11 +128,11 @@ func TestPullerIntegration(t *testing.T) {
 	t.Run("PullWithTimeout", func(t *testing.T) {
 		repo, _ := setupTestRepository(t)
 		puller := NewPuller(repo)
-		
+
 		ctx := context.Background()
 		opts := DefaultPullOptions()
 		opts.Timeout = 1 * time.Millisecond
-		
+
 		_, err := puller.Pull(ctx, opts)
 		assert.Error(t, err)
 	})
