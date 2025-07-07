@@ -13,6 +13,28 @@ import (
 	"github.com/unkn0wn-root/git-go/objects"
 )
 
+const (
+	gitDirName          = ".git"
+	defaultDirMode      = 0755
+	defaultFileMode     = 0644
+	executableFileMode  = 0755
+	hashLength          = 40
+	hashPrefixLength    = 2
+	refPrefixLength     = 5
+	headRefPrefixLength = 16
+
+	objectsDir    = "objects"
+	refsDir       = "refs"
+	headsDir      = "heads"
+	tagsDir       = "tags"
+	headFile      = "HEAD"
+
+	refPrefix     = "ref: "
+	headsPrefix   = "ref: refs/heads/"
+
+	defaultBranch = "main"
+)
+
 type Repository struct {
 	WorkDir string
 	GitDir  string
@@ -21,7 +43,7 @@ type Repository struct {
 func New(workDir string) *Repository {
 	return &Repository{
 		WorkDir: workDir,
-		GitDir:  filepath.Join(workDir, ".git"),
+		GitDir:  filepath.Join(workDir, gitDirName),
 	}
 }
 
@@ -32,21 +54,21 @@ func (r *Repository) Init() error {
 
 	dirs := []string{
 		r.GitDir,
-		filepath.Join(r.GitDir, "objects"),
-		filepath.Join(r.GitDir, "refs"),
-		filepath.Join(r.GitDir, "refs", "heads"),
-		filepath.Join(r.GitDir, "refs", "tags"),
+		filepath.Join(r.GitDir, objectsDir),
+		filepath.Join(r.GitDir, refsDir),
+		filepath.Join(r.GitDir, refsDir, headsDir),
+		filepath.Join(r.GitDir, refsDir, tagsDir),
 	}
 
 	for _, dir := range dirs {
-		if err := os.MkdirAll(dir, 0755); err != nil {
+		if err := os.MkdirAll(dir, defaultDirMode); err != nil {
 			return errors.NewGitError("init", dir, err)
 		}
 	}
 
-	headContent := "ref: refs/heads/main\n"
-	headPath := filepath.Join(r.GitDir, "HEAD")
-	if err := os.WriteFile(headPath, []byte(headContent), 0644); err != nil {
+	headContent := fmt.Sprintf("%s%s/%s/%s\n", refPrefix, refsDir, headsDir, defaultBranch)
+	headPath := filepath.Join(r.GitDir, headFile)
+	if err := os.WriteFile(headPath, []byte(headContent), defaultFileMode); err != nil {
 		return errors.NewGitError("init", headPath, err)
 	}
 
@@ -67,7 +89,7 @@ func (r *Repository) StoreObject(obj objects.Object) (string, error) {
 	objHash := hash.ComputeSHA1(data)
 	objPath := r.objectPath(objHash)
 	objDir := filepath.Dir(objPath)
-	if err := os.MkdirAll(objDir, 0755); err != nil {
+	if err := os.MkdirAll(objDir, defaultDirMode); err != nil {
 		return "", errors.NewObjectError(objHash, obj.Type().String(), err)
 	}
 	if _, err := os.Stat(objPath); err == nil {
@@ -152,19 +174,19 @@ func (r *Repository) LoadObject(hashStr string) (objects.Object, error) {
 }
 
 func (r *Repository) objectPath(hash string) string {
-	return filepath.Join(r.GitDir, "objects", hash[:2], hash[2:])
+	return filepath.Join(r.GitDir, objectsDir, hash[:hashPrefixLength], hash[hashPrefixLength:])
 }
 
 func (r *Repository) GetHead() (string, error) {
-	headPath := filepath.Join(r.GitDir, "HEAD")
+	headPath := filepath.Join(r.GitDir, headFile)
 	content, err := os.ReadFile(headPath)
 	if err != nil {
 		return "", errors.NewGitError("head", headPath, err)
 	}
 
 	headContent := string(content)
-	if len(headContent) > 5 && headContent[:5] == "ref: " {
-		refPath := headContent[5 : len(headContent)-1]
+	if len(headContent) > refPrefixLength && headContent[:refPrefixLength] == refPrefix {
+		refPath := headContent[refPrefixLength : len(headContent)-1]
 		refFullPath := filepath.Join(r.GitDir, refPath)
 
 		refContent, err := os.ReadFile(refFullPath)
@@ -175,34 +197,34 @@ func (r *Repository) GetHead() (string, error) {
 			return "", errors.NewGitError("head", refFullPath, err)
 		}
 
-		return string(refContent)[:40], nil
+		return string(refContent)[:hashLength], nil
 	}
 
-	return headContent[:40], nil
+	return headContent[:hashLength], nil
 }
 
 func (r *Repository) UpdateRef(refName, hash string) error {
 	refPath := filepath.Join(r.GitDir, refName)
 	refDir := filepath.Dir(refPath)
 
-	if err := os.MkdirAll(refDir, 0755); err != nil {
+	if err := os.MkdirAll(refDir, defaultDirMode); err != nil {
 		return errors.NewGitError("update-ref", refName, err)
 	}
 
 	content := hash + "\n"
-	return os.WriteFile(refPath, []byte(content), 0644)
+	return os.WriteFile(refPath, []byte(content), defaultFileMode)
 }
 
 func (r *Repository) GetCurrentBranch() (string, error) {
-	headPath := filepath.Join(r.GitDir, "HEAD")
+	headPath := filepath.Join(r.GitDir, headFile)
 	content, err := os.ReadFile(headPath)
 	if err != nil {
 		return "", errors.NewGitError("current-branch", headPath, err)
 	}
 
 	headContent := string(content)
-	if len(headContent) > 16 && headContent[:16] == "ref: refs/heads/" {
-		return headContent[16 : len(headContent)-1], nil
+	if len(headContent) > headRefPrefixLength && headContent[:headRefPrefixLength] == headsPrefix {
+		return headContent[headRefPrefixLength : len(headContent)-1], nil
 	}
 
 	return "", errors.ErrInvalidReference
@@ -217,7 +239,7 @@ func (r *Repository) CheckoutTreeWithIndex(tree *objects.Tree, idx *index.Index,
 
 		switch entry.Mode {
 		case objects.FileModeTree:
-			if err := os.MkdirAll(fullPath, 0755); err != nil {
+			if err := os.MkdirAll(fullPath, defaultDirMode); err != nil {
 				return nil, fmt.Errorf("failed to create directory %s: %w", fullPath, err)
 			}
 
@@ -248,13 +270,13 @@ func (r *Repository) CheckoutTreeWithIndex(tree *objects.Tree, idx *index.Index,
 				return nil, fmt.Errorf("blob object is not a blob")
 			}
 
-			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(fullPath), defaultDirMode); err != nil {
 				return nil, fmt.Errorf("failed to create directory for %s: %w", fullPath, err)
 			}
 
-			mode := os.FileMode(0644)
+			mode := os.FileMode(defaultFileMode)
 			if entry.Mode == objects.FileModeExecutable {
-				mode = os.FileMode(0755)
+				mode = os.FileMode(executableFileMode)
 			}
 
 			if err := os.WriteFile(fullPath, blob.Content(), mode); err != nil {
