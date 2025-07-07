@@ -5,8 +5,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/unkn0wn-root/git-go/repository"
 	"github.com/spf13/cobra"
+	"github.com/unkn0wn-root/git-go/repository"
 )
 
 var initCmd = &cobra.Command{

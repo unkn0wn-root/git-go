@@ -81,7 +81,7 @@ func (gi *GitIgnore) addPattern(patternStr string) error {
 }
 
 func (gi *GitIgnore) addGlobalPatterns() {
-    // I got an idea to have common ones. Why? Don't know but i thought it would be nice
+	// I got an idea to have common ones. Why? Don't know but i thought it would be nice
 	commonPatterns := []string{
 		".git/",
 		"*.tmp",

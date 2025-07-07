@@ -43,16 +43,16 @@ func (s FileStatus) String() string {
 }
 
 type StatusEntry struct {
-	Path         string
-	IndexStatus  FileStatus
-	WorkStatus   FileStatus
+	Path        string
+	IndexStatus FileStatus
+	WorkStatus  FileStatus
 }
 
 type StatusResult struct {
-	Branch      string
-	Entries     []StatusEntry
-	HasChanges  bool
-	IsInitial   bool
+	Branch     string
+	Entries    []StatusEntry
+	HasChanges bool
+	IsInitial  bool
 }
 
 func (sr *StatusResult) String() string {

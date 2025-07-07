@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/unkn0wn-root/git-go/index"
 	"github.com/unkn0wn-root/git-go/objects"
 	"github.com/unkn0wn-root/git-go/repository"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestShowLog(t *testing.T) {
@@ -237,8 +237,8 @@ func TestLogEntryString(t *testing.T) {
 	onelineOpts := LogOptions{Oneline: true}
 	oneline := entry.String(onelineOpts)
 
-	assert.Contains(t, oneline, "abcdef1") // short hash
-	assert.Contains(t, oneline, "Test commit message") // first line of message
+	assert.Contains(t, oneline, "abcdef1")                      // short hash
+	assert.Contains(t, oneline, "Test commit message")          // first line of message
 	assert.NotContains(t, oneline, "With detailed description") // should not include body
 
 	fullOpts := LogOptions{Oneline: false}

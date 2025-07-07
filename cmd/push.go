@@ -7,9 +7,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/push"
 	"github.com/unkn0wn-root/git-go/repository"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -40,7 +40,7 @@ When no remote is configured, the command defaults to 'origin'.`,
 		}
 
 		options := push.DefaultPushOptions()
-		
+
 		if len(args) > 0 {
 			options.Remote = args[0]
 		}
@@ -70,9 +70,9 @@ When no remote is configured, the command defaults to 'origin'.`,
 		}
 
 		fmt.Printf("Pushing to %s...\n", options.Remote)
-		
+
 		var result *push.PushResult
-		
+
 		if pushAll {
 			result, err = pusher.PushAll(ctx, options)
 		} else if pushTags {
@@ -80,7 +80,7 @@ When no remote is configured, the command defaults to 'origin'.`,
 		} else {
 			result, err = pusher.Push(ctx, options)
 		}
-		
+
 		if err != nil {
 			return fmt.Errorf("push failed: %w", err)
 		}
@@ -108,29 +108,29 @@ func printPushResult(result *push.PushResult) {
 		case push.RefUpdateUpToDate:
 			fmt.Printf("   = [up to date]      %s\n", extractBranchName(refName))
 		case push.RefUpdateFastForward:
-			fmt.Printf("   %s..%s  %s\n", 
+			fmt.Printf("   %s..%s  %s\n",
 				update.OldHash[:7], update.NewHash[:7], extractBranchName(refName))
 		case push.RefUpdateForced:
-			fmt.Printf(" + %s...%s %s (forced update)\n", 
+			fmt.Printf(" + %s...%s %s (forced update)\n",
 				update.OldHash[:7], update.NewHash[:7], extractBranchName(refName))
 		case push.RefUpdateOK:
 			if result.NewBranch {
-				fmt.Printf(" * [new branch]      %s -> %s\n", 
+				fmt.Printf(" * [new branch]      %s -> %s\n",
 					result.Branch, extractBranchName(refName))
 			} else {
-				fmt.Printf("   %s..%s  %s\n", 
+				fmt.Printf("   %s..%s  %s\n",
 					update.OldHash[:7], update.NewHash[:7], extractBranchName(refName))
 			}
 		}
 	}
 
 	for refName, reason := range result.RejectedRefs {
-		fmt.Printf(" ! [rejected]        %s (%s)\n", 
+		fmt.Printf(" ! [rejected]        %s (%s)\n",
 			extractBranchName(refName), reason)
 	}
 
 	if result.UpstreamSet {
-		fmt.Printf("Branch '%s' set up to track remote branch '%s' from '%s'.\n", 
+		fmt.Printf("Branch '%s' set up to track remote branch '%s' from '%s'.\n",
 			result.Branch, result.Branch, result.Remote)
 	}
 
@@ -156,15 +156,15 @@ func extractBranchName(refName string) string {
 	if refName == "" {
 		return ""
 	}
-	
+
 	if strings.HasPrefix(refName, "refs/heads/") {
 		return refName[11:]
 	}
-	
+
 	if strings.HasPrefix(refName, "refs/tags/") {
 		return refName[10:]
 	}
-	
+
 	return refName
 }
 
@@ -173,13 +173,13 @@ func formatBytes(bytes int64) string {
 	if bytes < unit {
 		return fmt.Sprintf("%d B", bytes)
 	}
-	
+
 	div, exp := int64(unit), 0
 	for n := bytes / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
-	
+
 	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
 }
 

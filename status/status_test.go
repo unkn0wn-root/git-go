@@ -338,13 +338,12 @@ func TestGetWorkingFiles_SkipsGitDir(t *testing.T) {
 	}
 }
 
-
 func containsSubstring(s, substr string) bool {
 	return len(s) >= len(substr) &&
-		   (s == substr ||
-		    s[:len(substr)] == substr ||
-		    s[len(s)-len(substr):] == substr ||
-		    containsSubstring(s[1:], substr))
+		(s == substr ||
+			s[:len(substr)] == substr ||
+			s[len(s)-len(substr):] == substr ||
+			containsSubstring(s[1:], substr))
 }
 
 func setupRepoWithCommit(t *testing.T, tempDir string) *repository.Repository {

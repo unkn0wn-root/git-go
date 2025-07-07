@@ -239,7 +239,7 @@ func findBestOffset(currentLines, parentLines []string, currentIdx, parentIdx in
 			parIdx := newParentIdx + i
 
 			if curIdx >= 0 && curIdx < len(currentLines) &&
-			   parIdx >= 0 && parIdx < len(parentLines) {
+				parIdx >= 0 && parIdx < len(parentLines) {
 				if currentLines[curIdx] == parentLines[parIdx] {
 					score++
 				}

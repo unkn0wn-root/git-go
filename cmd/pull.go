@@ -6,9 +6,9 @@ import (
 	"os"
 	"time"
 
+	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/pull"
 	"github.com/unkn0wn-root/git-go/repository"
-	"github.com/spf13/cobra"
 )
 
 var (
@@ -40,7 +40,7 @@ In its default mode, git pull is shorthand for git fetch followed by git merge F
 		}
 
 		options := pull.DefaultPullOptions()
-		
+
 		if len(args) > 0 {
 			options.Remote = args[0]
 		}
@@ -73,7 +73,7 @@ In its default mode, git pull is shorthand for git fetch followed by git merge F
 		ctx := context.Background()
 
 		fmt.Printf("Pulling from %s...\n", options.Remote)
-		
+
 		result, err := puller.Pull(ctx, options)
 		if err != nil {
 			return fmt.Errorf("pull failed: %w", err)
@@ -122,12 +122,12 @@ func printPullResult(result *pull.PullResult) {
 	}
 
 	if result.CommitsBehind > 0 {
-		fmt.Printf("Your branch is behind '%s' by %d commit(s).\n", 
+		fmt.Printf("Your branch is behind '%s' by %d commit(s).\n",
 			result.NewCommit[:7], result.CommitsBehind)
 	}
 
 	if result.CommitsAhead > 0 {
-		fmt.Printf("Your branch is ahead of '%s' by %d commit(s).\n", 
+		fmt.Printf("Your branch is ahead of '%s' by %d commit(s).\n",
 			result.OldCommit[:7], result.CommitsAhead)
 	}
 }

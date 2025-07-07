@@ -35,7 +35,7 @@ func (le *LogEntry) String(options LogOptions) string {
 	buf.WriteString(fmt.Sprintf("commit %s\n", le.Hash))
 
 	if le.Author.Name != le.Committer.Name || le.Author.Email != le.Committer.Email ||
-	   le.Author.When.Unix() != le.Committer.When.Unix() {
+		le.Author.When.Unix() != le.Committer.When.Unix() {
 		buf.WriteString(fmt.Sprintf("Author:     %s\n", le.Author.String()))
 		buf.WriteString(fmt.Sprintf("AuthorDate: %s\n", le.Author.When.Format("Mon Jan 2 15:04:05 2006 -0700")))
 		buf.WriteString(fmt.Sprintf("Commit:     %s\n", le.Committer.String()))

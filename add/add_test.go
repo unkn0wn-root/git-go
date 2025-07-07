@@ -5,11 +5,11 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/unkn0wn-root/git-go/gitignore"
 	"github.com/unkn0wn-root/git-go/index"
 	"github.com/unkn0wn-root/git-go/repository"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestAddFiles(t *testing.T) {
