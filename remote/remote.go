@@ -23,6 +23,32 @@ import (
 	"github.com/unkn0wn-root/git-go/ssh"
 )
 
+const (
+	httpTimeout       = 30 * time.Second
+	dialTimeout       = 10 * time.Second
+	keepAliveTimeout  = 30 * time.Second
+	packetHeaderSize  = 4
+
+    // This here is for git(hub|lab) when you try to push to remote repo without any files (plain)
+	nullHash          = "0000000000000000000000000000000000000000"
+
+	// Git protocol
+	servicePrefix     = "# service="
+	gitUploadPack     = "git-upload-pack"
+	gitReceivePack    = "git-receive-pack"
+	flushPacket       = "0000"
+	lsRefsCommand     = "0014command=ls-refs0001"
+	doneCommand       = "0009done\n"
+
+	// Content types
+	uploadPackType    = "application/x-git-upload-pack-request"
+	receivePackType   = "application/x-git-receive-pack-request"
+
+	// Default capabilities
+	defaultCapabilities = "multi_ack_detailed no-done side-band-64k thin-pack ofs-delta"
+	pushCapabilities   = "report-status side-band-64k"
+)
+
 type Protocol int
 
 const (
@@ -82,6 +108,12 @@ type AuthConfig struct {
 	SSHKey   string
 }
 
+type RefUpdate struct {
+	RefName string
+	OldHash string
+	NewHash string
+}
+
 func NewRemoteConfig(gitDir string) *RemoteConfig {
 	return &RemoteConfig{
 		remotes: make(map[string]*Remote),
@@ -126,6 +158,7 @@ func (rc *RemoteConfig) Load() error {
 					currentRemote.FetchURL = value
 					currentRemote.PushURL = value
 				case "fetch":
+					// do not proccess refspec
 				case "pushurl":
 					currentRemote.PushURL = value
 				}
@@ -194,7 +227,7 @@ func (rc *RemoteConfig) GetRemote(name string) (*Remote, error) {
 }
 
 func (rc *RemoteConfig) ListRemotes() []*Remote {
-	var remotes []*Remote
+	remotes := make([]*Remote, 0, len(rc.remotes)) // Pre-size since we know exact count
 	for _, remote := range rc.remotes {
 		remotes = append(remotes, remote)
 	}
@@ -207,16 +240,18 @@ func (rc *RemoteConfig) ListRemotes() []*Remote {
 }
 
 func DetectProtocol(url string) Protocol {
-	if strings.HasPrefix(url, "https://") {
+	switch {
+	case strings.HasPrefix(url, "https://"):
 		return ProtocolHTTPS
-	} else if strings.HasPrefix(url, "http://") {
+	case strings.HasPrefix(url, "http://"):
 		return ProtocolHTTP
-	} else if strings.HasPrefix(url, "git@") || strings.HasPrefix(url, "ssh://") {
+	case strings.HasPrefix(url, "git@") || strings.HasPrefix(url, "ssh://"):
 		return ProtocolSSH
-	} else if strings.HasPrefix(url, "git://") {
+	case strings.HasPrefix(url, "git://"):
 		return ProtocolGit
+	default:
+		return ProtocolHTTPS
 	}
-	return ProtocolHTTPS
 }
 
 func CreateTransport(remoteURL string, auth *AuthConfig) (Transport, error) {
@@ -239,14 +274,14 @@ func NewHTTPTransport(remoteURL string, auth *AuthConfig) (*HTTPTransport, error
 	}
 
 	client := &http.Client{
-		Timeout: 30 * time.Second,
+		Timeout: httpTimeout,
 		Transport: &http.Transport{
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: false,
 			},
 			DialContext: (&net.Dialer{
-				Timeout:   10 * time.Second,
-				KeepAlive: 30 * time.Second,
+				Timeout:   dialTimeout,
+				KeepAlive: keepAliveTimeout,
 			}).DialContext,
 		},
 	}
@@ -295,7 +330,7 @@ func NewSSHTransport(remoteURL string, auth *AuthConfig) (*SSHTransport, error) 
 }
 
 func (t *HTTPTransport) Connect(ctx context.Context, url string) error {
-	req, err := http.NewRequestWithContext(ctx, "GET", url+"/info/refs?service=git-upload-pack", nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url+"/info/refs?service="+gitUploadPack, nil)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -322,7 +357,7 @@ func (t *HTTPTransport) Disconnect() error {
 }
 
 func (t *HTTPTransport) ListRefs(ctx context.Context) (map[string]string, error) {
-	url := fmt.Sprintf("%s/info/refs?service=git-upload-pack", t.baseURL.String())
+	url := fmt.Sprintf("%s/info/refs?service=%s", t.baseURL.String(), gitUploadPack)
 	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
@@ -346,7 +381,7 @@ func (t *HTTPTransport) ListRefs(ctx context.Context) (map[string]string, error)
 }
 
 func (t *HTTPTransport) FetchPack(ctx context.Context, wants, haves []string) (PackReader, error) {
-	url := fmt.Sprintf("%s/git-upload-pack", t.baseURL.String())
+	url := fmt.Sprintf("%s/%s", t.baseURL.String(), gitUploadPack)
 
 	packRequest := buildPackRequest(wants, haves)
 	req, err := http.NewRequestWithContext(ctx, "POST", url, bytes.NewReader(packRequest))
@@ -354,7 +389,7 @@ func (t *HTTPTransport) FetchPack(ctx context.Context, wants, haves []string) (P
 		return nil, fmt.Errorf("failed to create pack request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/x-git-upload-pack-request")
+	req.Header.Set("Content-Type", uploadPackType)
 	if t.username != "" && t.password != "" {
 		req.SetBasicAuth(t.username, t.password)
 	}
@@ -373,7 +408,7 @@ func (t *HTTPTransport) FetchPack(ctx context.Context, wants, haves []string) (P
 }
 
 func (t *HTTPTransport) SendPack(ctx context.Context, refs map[string]RefUpdate, packData []byte) error {
-	url := fmt.Sprintf("%s/git-receive-pack", t.baseURL.String())
+	url := fmt.Sprintf("%s/%s", t.baseURL.String(), gitReceivePack)
 
 	// Build complete request with refs and pack data
 	var requestData bytes.Buffer
@@ -392,7 +427,7 @@ func (t *HTTPTransport) SendPack(ctx context.Context, refs map[string]RefUpdate,
 		return fmt.Errorf("failed to create push request: %w", err)
 	}
 
-	req.Header.Set("Content-Type", "application/x-git-receive-pack-request")
+	req.Header.Set("Content-Type", receivePackType)
 	if t.username != "" && t.password != "" {
 		req.SetBasicAuth(t.username, t.password)
 	}
@@ -433,14 +468,14 @@ func (t *SSHTransport) Disconnect() error {
 }
 
 func (t *SSHTransport) ListRefs(ctx context.Context) (map[string]string, error) {
-	conn, err := ssh.ExecuteSSHCommand(ctx, t.host, t.port, t.user, "git-upload-pack", []string{t.repo})
+	conn, err := ssh.ExecuteSSHCommand(ctx, t.host, t.port, t.user, gitUploadPack, []string{t.repo})
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute git-upload-pack: %w", err)
+		return nil, fmt.Errorf("failed to execute %s: %w", gitUploadPack, err)
 	}
 	defer conn.Close()
 
 	// Send initial packet to get refs
-	_, err = conn.Write([]byte("0014command=ls-refs0001"))
+	_, err = conn.Write([]byte(lsRefsCommand))
 	if err != nil {
 		return nil, fmt.Errorf("failed to send ls-refs command: %w", err)
 	}
@@ -449,9 +484,9 @@ func (t *SSHTransport) ListRefs(ctx context.Context) (map[string]string, error) 
 }
 
 func (t *SSHTransport) FetchPack(ctx context.Context, wants, haves []string) (PackReader, error) {
-	conn, err := ssh.ExecuteSSHCommand(ctx, t.host, t.port, t.user, "git-upload-pack", []string{t.repo})
+	conn, err := ssh.ExecuteSSHCommand(ctx, t.host, t.port, t.user, gitUploadPack, []string{t.repo})
 	if err != nil {
-		return nil, fmt.Errorf("failed to execute git-upload-pack: %w", err)
+		return nil, fmt.Errorf("failed to execute %s: %w", gitUploadPack, err)
 	}
 
 	packRequest := buildPackRequest(wants, haves)
@@ -465,9 +500,9 @@ func (t *SSHTransport) FetchPack(ctx context.Context, wants, haves []string) (Pa
 }
 
 func (t *SSHTransport) SendPack(ctx context.Context, refs map[string]RefUpdate, packData []byte) error {
-	conn, err := ssh.ExecuteSSHCommand(ctx, t.host, t.port, t.user, "git-receive-pack", []string{t.repo})
+	conn, err := ssh.ExecuteSSHCommand(ctx, t.host, t.port, t.user, gitReceivePack, []string{t.repo})
 	if err != nil {
-		return fmt.Errorf("failed to execute git-receive-pack: %w", err)
+		return fmt.Errorf("failed to execute %s: %w", gitReceivePack, err)
 	}
 	defer conn.Close()
 
@@ -503,12 +538,12 @@ func parseGitRefs(reader io.Reader) (map[string]string, error) {
 
 	offset := 0
 	for offset < len(data) {
-		if offset+4 > len(data) {
+		if offset+packetHeaderSize > len(data) {
 			break
 		}
 
 		// Parse packet length
-		lengthStr := string(data[offset : offset+4])
+		lengthStr := string(data[offset : offset+packetHeaderSize])
 		length, err := strconv.ParseInt(lengthStr, 16, 32)
 		if err != nil {
 			break
@@ -516,7 +551,7 @@ func parseGitRefs(reader io.Reader) (map[string]string, error) {
 
 		if length == 0 {
 			// Flush packet - skip and continue
-			offset += 4
+			offset += packetHeaderSize
 			continue
 		}
 
@@ -525,10 +560,10 @@ func parseGitRefs(reader io.Reader) (map[string]string, error) {
 		}
 
 		// Extract packet payload
-		payload := data[offset+4 : offset+int(length)]
+		payload := data[offset+packetHeaderSize : offset+int(length)]
 
 		// Skip service announcement
-		if bytes.HasPrefix(payload, []byte("# service=")) {
+		if bytes.HasPrefix(payload, []byte(servicePrefix)) {
 			offset += int(length)
 			continue
 		}
@@ -565,29 +600,28 @@ func buildPackRequest(wants, haves []string) []byte {
 	// Send want lines with capabilities on first want
 	for i, want := range wants {
 		if i == 0 {
-			// First want includes capabilities
-			line := fmt.Sprintf("want %s multi_ack_detailed no-done side-band-64k thin-pack ofs-delta\n", want)
-			pktLine := fmt.Sprintf("%04x%s", len(line)+4, line)
+			line := fmt.Sprintf("want %s %s\n", want, defaultCapabilities)
+			pktLine := fmt.Sprintf("%04x%s", len(line)+packetHeaderSize, line)
 			buf.WriteString(pktLine)
 		} else {
 			line := fmt.Sprintf("want %s\n", want)
-			pktLine := fmt.Sprintf("%04x%s", len(line)+4, line)
+			pktLine := fmt.Sprintf("%04x%s", len(line)+packetHeaderSize, line)
 			buf.WriteString(pktLine)
 		}
 	}
 
 	// Flush packet
-	buf.WriteString("0000")
+	buf.WriteString(flushPacket)
 
 	// Send have lines
 	for _, have := range haves {
 		line := fmt.Sprintf("have %s\n", have)
-		pktLine := fmt.Sprintf("%04x%s", len(line)+4, line)
+		pktLine := fmt.Sprintf("%04x%s", len(line)+packetHeaderSize, line)
 		buf.WriteString(pktLine)
 	}
 
 	// Send done
-	buf.WriteString("0009done\n")
+	buf.WriteString(doneCommand)
 
 	return buf.Bytes()
 }
@@ -600,34 +634,27 @@ func buildPushRequest(updates map[string]RefUpdate) []byte {
 		// use zero hash for new branches
 		oldHash := update.OldHash
 		if oldHash == "" {
-			oldHash = "0000000000000000000000000000000000000000"
+			oldHash = nullHash
 		}
 
 		var line string
 		if first {
-			// Include capabilities on first command
-			line = fmt.Sprintf("%s %s %s\x00report-status side-band-64k\n",
-				oldHash, update.NewHash, update.RefName)
+			line = fmt.Sprintf("%s %s %s\x00%s\n",
+				oldHash, update.NewHash, update.RefName, pushCapabilities)
 			first = false
 		} else {
 			line = fmt.Sprintf("%s %s %s\n",
 				oldHash, update.NewHash, update.RefName)
 		}
 
-		pktLine := fmt.Sprintf("%04x%s", len(line)+4, line)
+		pktLine := fmt.Sprintf("%04x%s", len(line)+packetHeaderSize, line)
 		buf.WriteString(pktLine)
 	}
 
 	// Flush packet
-	buf.WriteString("0000")
+	buf.WriteString(flushPacket)
 
 	return buf.Bytes()
-}
-
-type RefUpdate struct {
-	RefName string
-	OldHash string
-	NewHash string
 }
 
 func GetDefaultRemote(repo *repository.Repository) (*Remote, error) {
@@ -641,12 +668,14 @@ func GetDefaultRemote(repo *repository.Repository) (*Remote, error) {
 		return nil, errors.NewGitError("remote", "", fmt.Errorf("no remotes configured"))
 	}
 
+	// Look for "origin" first
 	for _, remote := range remotes {
 		if remote.Name == "origin" {
 			return remote, nil
 		}
 	}
 
+	// Return first remote if "origin" not found
 	return remotes[0], nil
 }
 
@@ -658,20 +687,22 @@ func LoadAuthConfig() (*AuthConfig, error) {
 
 	auth := &AuthConfig{}
 
+	// tokens in env
 	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
 		auth.Token = token
 	} else if token := os.Getenv("GITLAB_TOKEN"); token != "" {
 		auth.Token = token
 	}
 
+	// basic auth
 	if username := os.Getenv("GIT_USERNAME"); username != "" {
 		auth.Username = username
 	}
-
 	if password := os.Getenv("GIT_PASSWORD"); password != "" {
 		auth.Password = password
 	}
 
+    // ssh
 	sshKeyPath := filepath.Join(homeDir, ".ssh", "id_rsa")
 	if _, err := os.Stat(sshKeyPath); err == nil {
 		auth.SSHKey = sshKeyPath
