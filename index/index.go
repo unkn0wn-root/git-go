@@ -17,6 +17,13 @@ import (
 	"github.com/unkn0wn-root/git-go/hash"
 )
 
+const (
+	indexSignature  = "DIRC"
+	indexVersion    = 2
+	fixedHeaderSize = 62
+	maxPathLength   = 0xFFF
+)
+
 type IndexEntry struct {
 	Path         string
 	Hash         string
@@ -48,7 +55,6 @@ func New(gitDir string) *Index {
 
 func (idx *Index) Load() error {
 	indexPath := filepath.Join(idx.gitDir, "index")
-
 	file, err := os.Open(indexPath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -68,13 +74,13 @@ func (idx *Index) Load() error {
 	}
 
 	// git index signature is "DIRC" (DirCache)
-	if string(header[:4]) != "DIRC" {
+	if string(header[:4]) != indexSignature {
 		return errors.NewIndexError(indexPath, fmt.Errorf("invalid index signature"))
 	}
 
 	// only support index version 2
 	version := binary.BigEndian.Uint32(header[4:8])
-	if version != 2 {
+	if version != indexVersion {
 		return errors.NewIndexError(indexPath, fmt.Errorf("unsupported index version: %d", version))
 	}
 
@@ -99,21 +105,21 @@ func (idx *Index) Save() error {
 	defer file.Close()
 
 	// get all entries (both staged and committed) and sort them
-	var allEntries []*IndexEntry
+    sortedEntries := make([]*IndexEntry, 0, len(idx.entries))
 	for _, entry := range idx.entries {
-		allEntries = append(allEntries, entry)
+		sortedEntries = append(sortedEntries, entry)
 	}
 
-	sort.Slice(allEntries, func(i, j int) bool {
-		return allEntries[i].Path < allEntries[j].Path
+	sort.Slice(sortedEntries, func(i, j int) bool {
+		return sortedEntries[i].Path < sortedEntries[j].Path
 	})
 
 	var buf bytes.Buffer
-	buf.WriteString("DIRC")                                       // Signature
-	binary.Write(&buf, binary.BigEndian, uint32(2))               // Version
-	binary.Write(&buf, binary.BigEndian, uint32(len(allEntries))) // Entry count
+	buf.WriteString(indexSignature)                                     // Signature
+	binary.Write(&buf, binary.BigEndian, uint32(indexVersion))          // Version
+	binary.Write(&buf, binary.BigEndian, uint32(len(sortedEntries)))    // Entry count
 
-	for _, entry := range allEntries {
+	for _, entry := range sortedEntries {
 		if err := idx.writeIndexEntry(&buf, entry); err != nil {
 			return errors.NewIndexError(indexPath, err)
 		}
@@ -203,7 +209,7 @@ func (idx *Index) GetAll() map[string]*IndexEntry {
 }
 
 func (idx *Index) GetAllEntries() map[string]*IndexEntry {
-	result := make(map[string]*IndexEntry)
+	result := make(map[string]*IndexEntry, len(idx.entries))
 	for k, v := range idx.entries {
 		result[k] = v
 	}
@@ -284,9 +290,9 @@ type dirNode struct {
 
 func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
 	// git index entry: 62-byte fixed header + variable-length path
-	header := make([]byte, 62)
+	header := make([]byte, fixedHeaderSize)
 	if _, err := io.ReadFull(file, header); err != nil {
-		return nil, err
+        return nil, fmt.Errorf("failed to read entry header: %w", err)
 	}
 
 	// parse Git index entry fields
@@ -307,8 +313,8 @@ func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
 	var pathBytes []byte
 
     // path length is stored in lower 12 bits of flags
-	pathLen := flags & 0xFFF
-	if pathLen == 0xFFF {
+	pathLen := flags & maxPathLength
+	if pathLen == maxPathLength {
 		// path >= 4095 chars: read until null terminator
 		var pathBuf bytes.Buffer
 		buf := make([]byte, 1)

@@ -17,6 +17,15 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
+// Constants for better readability
+const (
+	defaultRemote  = "origin"
+	defaultTimeout = 5 * time.Minute
+	defaultDirMode = 0755
+	defaultFileMode = 0644
+	executableMode = 0755
+)
+
 type PullStrategy int
 
 const (
@@ -69,11 +78,11 @@ func NewPuller(repo *repository.Repository) *Puller {
 
 func (p *Puller) Pull(ctx context.Context, options PullOptions) (*PullResult, error) {
 	if options.Remote == "" {
-		options.Remote = "origin"
+		options.Remote = defaultRemote
 	}
 
 	if options.Timeout == 0 {
-		options.Timeout = 5 * time.Minute
+		options.Timeout = defaultTimeout
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, options.Timeout)
@@ -155,10 +164,11 @@ func (p *Puller) Pull(ctx context.Context, options PullOptions) (*PullResult, er
 
 	if localCommit == "" {
 		result.FastForward = true
-		if err := p.repo.UpdateRef(fmt.Sprintf("refs/heads/%s", currentBranch), remoteCommit); err != nil {
+		branchRef := fmt.Sprintf("refs/heads/%s", currentBranch)
+		if err := p.repo.UpdateRef(branchRef, remoteCommit); err != nil {
 			return nil, fmt.Errorf("failed to update branch ref: %w", err)
 		}
-		result.UpdatedRefs[fmt.Sprintf("refs/heads/%s", currentBranch)] = remoteCommit
+		result.UpdatedRefs[branchRef] = remoteCommit
 		return result, nil
 	}
 
@@ -216,7 +226,7 @@ func (p *Puller) processPack(reader remote.PackReader) error {
 
 func (p *Puller) updateRemoteRefs(remoteRefs map[string]string, remoteName string) error {
 	remoteRefsDir := filepath.Join(p.repo.GitDir, "refs", "remotes", remoteName)
-	if err := os.MkdirAll(remoteRefsDir, 0755); err != nil {
+	if err := os.MkdirAll(remoteRefsDir, defaultDirMode); err != nil {
 		return fmt.Errorf("failed to create remote refs directory: %w", err)
 	}
 
@@ -225,7 +235,7 @@ func (p *Puller) updateRemoteRefs(remoteRefs map[string]string, remoteName strin
 			branchName := strings.TrimPrefix(refName, "refs/heads/")
 			remoteRefPath := filepath.Join(remoteRefsDir, branchName)
 
-			if err := os.WriteFile(remoteRefPath, []byte(hash+"\n"), 0644); err != nil {
+			if err := os.WriteFile(remoteRefPath, []byte(hash+"\n"), defaultFileMode); err != nil {
 				return fmt.Errorf("failed to update remote ref %s: %w", refName, err)
 			}
 		}
@@ -293,11 +303,12 @@ func (p *Puller) getAncestors(commitHash string) ([]string, error) {
 }
 
 func (p *Puller) fastForward(branch, targetCommit string, result *PullResult) error {
-	if err := p.repo.UpdateRef(fmt.Sprintf("refs/heads/%s", branch), targetCommit); err != nil {
+	branchRef := fmt.Sprintf("refs/heads/%s", branch)
+	if err := p.repo.UpdateRef(branchRef, targetCommit); err != nil {
 		return fmt.Errorf("failed to update branch ref: %w", err)
 	}
 
-	result.UpdatedRefs[fmt.Sprintf("refs/heads/%s", branch)] = targetCommit
+	result.UpdatedRefs[branchRef] = targetCommit
 
 	if err := p.updateWorkingDirectory(targetCommit, result); err != nil {
 		return fmt.Errorf("failed to update working directory: %w", err)
@@ -335,12 +346,13 @@ func (p *Puller) performMerge(branch, remoteCommit string, result *PullResult) e
 		return fmt.Errorf("failed to store merge commit: %w", err)
 	}
 
-	if err := p.repo.UpdateRef(fmt.Sprintf("refs/heads/%s", branch), mergeCommitHash); err != nil {
+	branchRef := fmt.Sprintf("refs/heads/%s", branch)
+	if err := p.repo.UpdateRef(branchRef, mergeCommitHash); err != nil {
 		return fmt.Errorf("failed to update branch ref: %w", err)
 	}
 
 	result.MergeCommit = mergeCommitHash
-	result.UpdatedRefs[fmt.Sprintf("refs/heads/%s", branch)] = mergeCommitHash
+	result.UpdatedRefs[branchRef] = mergeCommitHash
 
 	if err := p.updateWorkingDirectory(mergeCommitHash, result); err != nil {
 		return fmt.Errorf("failed to update working directory: %w", err)
@@ -424,7 +436,7 @@ func (p *Puller) checkoutTree(tree *objects.Tree, prefix string, result *PullRes
 
 		switch entry.Mode {
 		case objects.FileModeTree:
-			if err := os.MkdirAll(fullPath, 0755); err != nil {
+			if err := os.MkdirAll(fullPath, defaultDirMode); err != nil {
 				return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
 			}
 
@@ -457,13 +469,13 @@ func (p *Puller) checkoutTree(tree *objects.Tree, prefix string, result *PullRes
 				return fmt.Errorf("blob object is not a blob")
 			}
 
-			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(fullPath), defaultDirMode); err != nil {
 				return fmt.Errorf("failed to create directory for %s: %w", fullPath, err)
 			}
 
-			mode := os.FileMode(0644)
+			mode := os.FileMode(defaultFileMode)
 			if entry.Mode == objects.FileModeExecutable {
-				mode = os.FileMode(0755)
+				mode = os.FileMode(executableMode)
 			}
 
 			if err := os.WriteFile(fullPath, blob.Content(), mode); err != nil {
@@ -479,12 +491,12 @@ func (p *Puller) checkoutTree(tree *objects.Tree, prefix string, result *PullRes
 
 func DefaultPullOptions() PullOptions {
 	return PullOptions{
-		Remote:         "origin",
+		Remote:         defaultRemote,
 		Strategy:       PullMerge,
 		AllowUnrelated: false,
 		Force:          false,
 		Prune:          false,
 		Depth:          0,
-		Timeout:        5 * time.Minute,
+		Timeout:        defaultTimeout,
 	}
 }
