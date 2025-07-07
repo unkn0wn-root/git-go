@@ -2,6 +2,8 @@
 
 A Git implementation written in Go
 
+**Note**: This is pretty much WIP and some things may be broken in some cases and code also comments are missing. These will be worked on when the implementation is stabilized (or if).
+
 ## Installation
 
 ### Download binary
@@ -78,11 +80,10 @@ go build -o git-go
 ./git-go remote list
 ./git-go remote show origin
 
-## WIP (Not fully implemented yet. Working on it)
-# Clone repository structure (protocol client)
+# Clone repository
 ./git-go clone <url> [directory]
 
-# Pull/Push protocol negotiation (protocol client)
+# Pull/Push operations
 ./git-go pull [remote] [branch]
 ./git-go push [remote] [branch]
 ```
