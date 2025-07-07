@@ -15,6 +15,27 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
+const (
+	defaultTimeout       = 2 * time.Minute
+	defaultCloneTimeout  = 10 * time.Minute
+	defaultRemoteName    = "origin"
+	defaultRepoName      = "repository"
+	gitSuffix           = ".git"
+	defaultDirMode      = 0755
+	defaultFileMode     = 0644
+	gitObjectNameLength = 38
+
+	// Default branch names
+	branchMain    = "main"
+	branchMaster  = "master"
+	branchDevelop = "develop"
+	branchTrunk   = "trunk"
+
+	// Git references
+	headsPrefix = "refs/heads/"
+	headRef     = "HEAD"
+)
+
 type CloneOptions struct {
 	URL            string
 	Directory      string
@@ -54,7 +75,7 @@ func (c *Cloner) Clone(ctx context.Context, options CloneOptions) (*CloneResult,
 	}
 
 	if options.Timeout == 0 {
-		options.Timeout = 2 * time.Minute
+		options.Timeout = defaultTimeout
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, options.Timeout)
@@ -80,7 +101,7 @@ func (c *Cloner) Clone(ctx context.Context, options CloneOptions) (*CloneResult,
 		}
 	}
 
-	if err := os.MkdirAll(absPath, 0755); err != nil {
+	if err := os.MkdirAll(absPath, defaultDirMode); err != nil {
 		return nil, fmt.Errorf("failed to create target directory: %w", err)
 	}
 
@@ -91,7 +112,7 @@ func (c *Cloner) Clone(ctx context.Context, options CloneOptions) (*CloneResult,
 
 	result := &CloneResult{
 		Repository:  repo,
-		RemoteName:  "origin",
+		RemoteName:  defaultRemoteName,
 		FetchedRefs: make(map[string]string),
 	}
 
@@ -124,7 +145,7 @@ func (c *Cloner) Clone(ctx context.Context, options CloneOptions) (*CloneResult,
 	}
 	result.DefaultBranch = defaultBranch
 
-	defaultBranchRef := fmt.Sprintf("refs/heads/%s", defaultBranch)
+	defaultBranchRef := fmt.Sprintf("%s%s", headsPrefix, defaultBranch)
 	commitHash, exists := remoteRefs[defaultBranchRef]
 	if !exists {
 		return nil, fmt.Errorf("default branch '%s' not found on remote", defaultBranch)
@@ -185,12 +206,12 @@ func (c *Cloner) inferDirectoryName(url string) string {
 	url = strings.TrimSuffix(url, "/")
 	parts := strings.Split(url, "/")
 	if len(parts) == 0 {
-		return "repository"
+		return defaultRepoName
 	}
 
 	name := parts[len(parts)-1]
-	if strings.HasSuffix(name, ".git") {
-		name = strings.TrimSuffix(name, ".git")
+	if strings.HasSuffix(name, gitSuffix) {
+		name = strings.TrimSuffix(name, gitSuffix)
 	}
 
 	if strings.Contains(name, ":") {
@@ -201,7 +222,7 @@ func (c *Cloner) inferDirectoryName(url string) string {
 	}
 
 	if name == "" {
-		return "repository"
+		return defaultRepoName
 	}
 
 	return name
@@ -218,32 +239,32 @@ func (c *Cloner) setupRemote(repo *repository.Repository, remoteName, url string
 
 func (c *Cloner) determineDefaultBranch(remoteRefs map[string]string, preferredBranch string) string {
 	if preferredBranch != "" {
-		branchRef := fmt.Sprintf("refs/heads/%s", preferredBranch)
+		branchRef := fmt.Sprintf("%s%s", headsPrefix, preferredBranch)
 		if _, exists := remoteRefs[branchRef]; exists {
 			return preferredBranch
 		}
 		return ""
 	}
 
-	if headRef, exists := remoteRefs["HEAD"]; exists {
+	if headRef, exists := remoteRefs[headRef]; exists {
 		for ref, hash := range remoteRefs {
-			if hash == headRef && strings.HasPrefix(ref, "refs/heads/") {
-				return strings.TrimPrefix(ref, "refs/heads/")
+			if hash == headRef && strings.HasPrefix(ref, headsPrefix) {
+				return strings.TrimPrefix(ref, headsPrefix)
 			}
 		}
 	}
 
-	defaultNames := []string{"main", "master", "develop", "trunk"}
+	defaultNames := []string{branchMain, branchMaster, branchDevelop, branchTrunk}
 	for _, name := range defaultNames {
-		branchRef := fmt.Sprintf("refs/heads/%s", name)
+		branchRef := fmt.Sprintf("%s%s", headsPrefix, name)
 		if _, exists := remoteRefs[branchRef]; exists {
 			return name
 		}
 	}
 
 	for ref := range remoteRefs {
-		if strings.HasPrefix(ref, "refs/heads/") {
-			return strings.TrimPrefix(ref, "refs/heads/")
+		if strings.HasPrefix(ref, headsPrefix) {
+			return strings.TrimPrefix(ref, headsPrefix)
 		}
 	}
 
@@ -261,22 +282,22 @@ func (c *Cloner) processPack(repo *repository.Repository, packReader remote.Pack
 
 func (c *Cloner) updateRemoteRefs(repo *repository.Repository, remoteRefs map[string]string, remoteName string, singleBranch bool, defaultBranch string) error {
 	remoteRefsDir := filepath.Join(repo.GitDir, "refs", "remotes", remoteName)
-	if err := os.MkdirAll(remoteRefsDir, 0755); err != nil {
+	if err := os.MkdirAll(remoteRefsDir, defaultDirMode); err != nil {
 		return fmt.Errorf("failed to create remote refs directory: %w", err)
 	}
 
 	for refName, hash := range remoteRefs {
-		if !strings.HasPrefix(refName, "refs/heads/") {
+		if !strings.HasPrefix(refName, headsPrefix) {
 			continue
 		}
 
-		branchName := strings.TrimPrefix(refName, "refs/heads/")
+		branchName := strings.TrimPrefix(refName, headsPrefix)
 		if singleBranch && branchName != defaultBranch {
 			continue
 		}
 
 		remoteRefPath := filepath.Join(remoteRefsDir, branchName)
-		if err := os.WriteFile(remoteRefPath, []byte(hash+"\n"), 0644); err != nil {
+		if err := os.WriteFile(remoteRefPath, []byte(hash+"\n"), defaultFileMode); err != nil {
 			return fmt.Errorf("failed to update remote ref %s: %w", refName, err)
 		}
 	}
@@ -285,14 +306,14 @@ func (c *Cloner) updateRemoteRefs(repo *repository.Repository, remoteRefs map[st
 }
 
 func (c *Cloner) createLocalBranch(repo *repository.Repository, branchName, commitHash string) error {
-	branchRef := fmt.Sprintf("refs/heads/%s", branchName)
+	branchRef := fmt.Sprintf("%s%s", headsPrefix, branchName)
 	if err := repo.UpdateRef(branchRef, commitHash); err != nil {
 		return fmt.Errorf("failed to create branch %s: %w", branchName, err)
 	}
 
-	headPath := filepath.Join(repo.GitDir, "HEAD")
+	headPath := filepath.Join(repo.GitDir, headRef)
 	headContent := fmt.Sprintf("ref: %s\n", branchRef)
-	if err := os.WriteFile(headPath, []byte(headContent), 0644); err != nil {
+	if err := os.WriteFile(headPath, []byte(headContent), defaultFileMode); err != nil {
 		return fmt.Errorf("failed to update HEAD: %w", err)
 	}
 
@@ -345,7 +366,7 @@ func (c *Cloner) countObjects(repo *repository.Repository) int {
 		if err != nil {
 			return nil
 		}
-		if !info.IsDir() && len(filepath.Base(path)) == 38 {
+		if !info.IsDir() && len(filepath.Base(path)) == gitObjectNameLength {
 			// git object files are 38 characters (2 for directory + 38 for filename)
 			count++
 		}
@@ -364,6 +385,6 @@ func DefaultCloneOptions() CloneOptions {
 		Shallow:      false,
 		SingleBranch: false,
 		Progress:     true,
-		Timeout:      10 * time.Minute,
+		Timeout:      defaultCloneTimeout,
 	}
 }
