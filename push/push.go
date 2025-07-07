@@ -28,9 +28,9 @@ const (
 	packVersion       = 2
 
 	// Git object types for pack format
-	objCommit         = 1
-	objTree           = 2
-	objBlob           = 3
+	OBJ_COMMIT         = 1
+	OBJ_TREE           = 2
+	OBJ_BLOB           = 3
 
 	sizeMask          = 0xF
 	typeBits          = 4
@@ -468,13 +468,13 @@ func (p *Pusher) createPackObject(hash string) ([]byte, error) {
 	// determine object type and get raw data
 	switch o := obj.(type) {
 	case *objects.Blob:
-		objType = objBlob
+		objType = OBJ_BLOB
 		objData = o.Content()
 	case *objects.Tree:
-		objType = objTree
+		objType = OBJ_TREE
 		objData = o.Data()
 	case *objects.Commit:
-		objType = objCommit
+		objType = OBJ_COMMIT
 		objData = o.Data()
 	default:
 		return nil, fmt.Errorf("unsupported object type for %s", hash)
