@@ -93,7 +93,9 @@ func addFile(repo *repository.Repository, idx *index.Index, filePath string, gi 
 		mode = uint32(0o100755)
 	}
 
-	if err := idx.Add(relPath, hash, mode, info.Size(), info.ModTime()); err != nil {
+	// Convert to Git-compatible path format (forward slashes)
+	gitPath := filepath.ToSlash(relPath)
+	if err := idx.Add(gitPath, hash, mode, info.Size(), info.ModTime()); err != nil {
 		return errors.NewGitError("add", filePath, err)
 	}
 

@@ -53,7 +53,7 @@ func (c *Cloner) Clone(ctx context.Context, options CloneOptions) (*CloneResult,
 	}
 
 	if options.Timeout == 0 {
-		options.Timeout = 1 * time.Minute
+		options.Timeout = 2 * time.Minute
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, options.Timeout)

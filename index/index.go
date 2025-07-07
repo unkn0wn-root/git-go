@@ -72,8 +72,6 @@ func (idx *Index) Load() error {
 	}
 
 	entryCount := binary.BigEndian.Uint32(header[8:12])
-
-	// Read entries
 	for i := uint32(0); i < entryCount; i++ {
 		entry, err := idx.readIndexEntry(file)
 		if err != nil {
@@ -94,34 +92,27 @@ func (idx *Index) Save() error {
 	}
 	defer file.Close()
 
-	// Get staged entries and sort them
-	var stagedEntries []*IndexEntry
+	// get all entries (both staged and committed) and sort them
+	var allEntries []*IndexEntry
 	for _, entry := range idx.entries {
-		if entry.Staged {
-			stagedEntries = append(stagedEntries, entry)
-		}
+		allEntries = append(allEntries, entry)
 	}
 
-	sort.Slice(stagedEntries, func(i, j int) bool {
-		return stagedEntries[i].Path < stagedEntries[j].Path
+	sort.Slice(allEntries, func(i, j int) bool {
+		return allEntries[i].Path < allEntries[j].Path
 	})
 
-	// Build complete index in memory to compute SHA-1 checksum
 	var buf bytes.Buffer
+	buf.WriteString("DIRC")                                        // Signature
+	binary.Write(&buf, binary.BigEndian, uint32(2))                // Version
+	binary.Write(&buf, binary.BigEndian, uint32(len(allEntries))) // Entry count
 
-	// Write Git index header
-	buf.WriteString("DIRC")                                          // Signature
-	binary.Write(&buf, binary.BigEndian, uint32(2))                  // Version
-	binary.Write(&buf, binary.BigEndian, uint32(len(stagedEntries))) // Entry count
-
-	// entries
-	for _, entry := range stagedEntries {
+	for _, entry := range allEntries {
 		if err := idx.writeIndexEntry(&buf, entry); err != nil {
 			return errors.NewIndexError(indexPath, err)
 		}
 	}
 
-	// Git index ends with SHA-1 checksum of all preceding data
 	hash := sha1.Sum(buf.Bytes())
 	buf.Write(hash[:])
 
@@ -147,6 +138,7 @@ func (idx *Index) Add(path, objHash string, mode uint32, size int64, modTime tim
 	}
 	return nil
 }
+
 
 func (idx *Index) Remove(path string) error {
 	if _, exists := idx.entries[path]; !exists {
@@ -202,7 +194,7 @@ func (idx *Index) WriteTree() (string, error) {
 		files:    make(map[string]*IndexEntry),
 	}
 
-	// Convert flat file paths to nested directory structure
+	// convert flat file paths to nested directory structure
 	for _, entry := range idx.entries {
 		if !entry.Staged {
 			continue
@@ -211,7 +203,6 @@ func (idx *Index) WriteTree() (string, error) {
 		parts := strings.Split(entry.Path, string(filepath.Separator))
 		current := root
 
-		// Create intermediate directories as needed
 		for i := 0; i < len(parts)-1; i++ {
 			dirName := parts[i]
 			if current.children[dirName] == nil {
@@ -305,7 +296,7 @@ func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
 		Mode:    mode,
 		Size:    int64(size),
 		ModTime: modTime,
-		Staged:  true,
+		Staged:  true, // Files in the index are staged for commit
 	}, nil
 }
 

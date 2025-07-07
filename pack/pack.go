@@ -131,12 +131,6 @@ func (p *PackProcessor) ProcessPack(reader io.Reader) error {
 	return nil
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
 
 func (p *PackProcessor) extractPackFromPacketLine(data []byte) ([]byte, error) {
 	// check if this is already a pack file
@@ -553,7 +547,6 @@ func (p *PackProcessor) parseRefDelta(offset int) (string, int, error) {
 }
 
 func (p *PackProcessor) resolveAllDeltas() error {
-	// build dependency graph and resolve in topological order
 	var nonDeltas []*PackObject
 	var deltas []*PackObject
 
@@ -565,35 +558,101 @@ func (p *PackProcessor) resolveAllDeltas() error {
 		}
 	}
 
-	// first, mark all non-delta objects as resolved
 	for _, obj := range nonDeltas {
 		p.resolvedCache[obj.Hash] = obj
 	}
 
-	// resolve deltas
-	maxIterations := len(deltas) + 1
-	for iteration := 0; iteration < maxIterations && len(deltas) > 0; iteration++ {
-		var remaining []*PackObject
+	resolving := make(map[int64]bool)
 
-		for _, delta := range deltas {
-			if err := p.resolveDelta(delta); err == nil {
-				p.resolvedCache[delta.Hash] = delta
-			} else {
-				// still can't resolve, keep for next iteration
-				remaining = append(remaining, delta)
+	for _, delta := range deltas {
+		if err := p.resolveDeltaRecursive(delta, resolving); err != nil {
+			return fmt.Errorf("failed to resolve delta at offset %d: %w", delta.Offset, err)
+		}
+	}
+
+	return nil
+}
+
+func (p *PackProcessor) resolveDeltaRecursive(delta *PackObject, resolving map[int64]bool) error {
+	// Check if already resolved (use existing hash if available)
+	if delta.Hash != "" && p.resolvedCache[delta.Hash] != nil {
+		return nil
+	}
+
+	// Use offset as unique identifier for tracking circular dependencies
+	if resolving[delta.Offset] {
+		return fmt.Errorf("circular delta dependency detected for object at offset %d", delta.Offset)
+	}
+
+	resolving[delta.Offset] = true
+	defer delete(resolving, delta.Offset)
+
+	var baseObj *PackObject
+	var err error
+	if delta.PackType == OBJ_OFS_DELTA {
+		// find base object by offset
+		baseObj = p.objectCache[delta.DeltaOffset]
+		if baseObj == nil {
+			return fmt.Errorf("base object not found at offset %d", delta.DeltaOffset)
+		}
+
+		// ff base is a delta, resolve it first
+		if baseObj.IsDelta {
+			if err := p.resolveDeltaRecursive(baseObj, resolving); err != nil {
+				return fmt.Errorf("failed to resolve base delta: %w", err)
+			}
+			baseObj = p.resolvedCache[baseObj.Hash]
+		}
+
+	} else if delta.PackType == OBJ_REF_DELTA {
+		// find base object by hash
+		baseObj = p.resolvedCache[delta.DeltaBaseHash]
+		if baseObj == nil {
+			for _, obj := range p.objectCache {
+				if obj.Hash == delta.DeltaBaseHash {
+					baseObj = obj
+					break
+				}
+			}
+
+			// ff base is a delta, resolve it first
+			if baseObj != nil && baseObj.IsDelta {
+				if err := p.resolveDeltaRecursive(baseObj, resolving); err != nil {
+					return fmt.Errorf("failed to resolve base delta: %w", err)
+				}
+				baseObj = p.resolvedCache[baseObj.Hash]
+			}
+
+			if baseObj == nil {
+				obj, err := p.repo.LoadObject(delta.DeltaBaseHash)
+				if err != nil {
+					return fmt.Errorf("base object %s not found: %w", delta.DeltaBaseHash, err)
+				}
+
+				baseObj = &PackObject{
+					Type: obj.Type(),
+					Size: obj.Size(),
+					Data: obj.Data(),
+					Hash: delta.DeltaBaseHash,
+				}
 			}
 		}
-
-		if len(remaining) == len(deltas) {
-			return fmt.Errorf("circular or missing delta dependencies")
-		}
-
-		deltas = remaining
 	}
 
-	if len(deltas) > 0 {
-		return fmt.Errorf("failed to resolve %d delta objects", len(deltas))
+	if baseObj == nil {
+		return fmt.Errorf("could not find base object")
 	}
+
+	delta.Data, err = p.applyDelta(baseObj.Data, delta.RawData)
+	if err != nil {
+		return fmt.Errorf("failed to apply delta: %w", err)
+	}
+
+	delta.Type = baseObj.Type
+	delta.Size = int64(len(delta.Data))
+	delta.Hash = hash.ComputeObjectHash(delta.Type.String(), delta.Data)
+
+	p.resolvedCache[delta.Hash] = delta
 
 	return nil
 }
@@ -613,16 +672,12 @@ func (p *PackProcessor) resolveDelta(delta *PackObject) error {
 			return fmt.Errorf("base object not yet resolved")
 		}
 		if !baseObj.IsDelta {
-			// base is not a delta, it's already resolved
 		} else {
-			// base is a resolved delta
 			baseObj = p.resolvedCache[baseObj.Hash]
 		}
 	} else if delta.PackType == OBJ_REF_DELTA {
-		// find base object by hash
 		baseObj = p.resolvedCache[delta.DeltaBaseHash]
 		if baseObj == nil {
-			// try to load from repository
 			obj, err := p.repo.LoadObject(delta.DeltaBaseHash)
 			if err != nil {
 				return fmt.Errorf("base object %s not found", delta.DeltaBaseHash)
@@ -808,7 +863,6 @@ func (p *PackProcessor) storeObject(packObj *PackObject) error {
 		return fmt.Errorf("failed to store object %s: %w", packObj.Hash, err)
 	}
 
-	// verify the object can be loaded back
 	_, err := p.repo.LoadObject(packObj.Hash)
 	if err != nil {
 		return fmt.Errorf("failed to verify stored object %s: %w", packObj.Hash, err)
@@ -854,4 +908,11 @@ func (p *PackProcessor) storeRawObject(hash string, objType objects.ObjectType, 
 	}
 
 	return nil
+}
+
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
