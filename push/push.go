@@ -17,6 +17,30 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
+const (
+	defaultRemote     = "origin"
+	defaultTimeout    = 2 * time.Minute
+	defaultFileMode   = 0644
+	shortHashLength   = 7
+
+	// Pack file
+	packSignature     = "PACK"
+	packVersion       = 2
+
+	// Git object types for pack format
+	objCommit         = 1
+	objTree           = 2
+	objBlob           = 3
+
+	sizeMask          = 0xF
+	typeBits          = 4
+	continuationBit   = 0x80
+	sevenBitMask      = 0x7F
+
+	headsPrefix       = "refs/heads/"
+	tagsPrefix        = "refs/tags/"
+)
+
 type RefUpdateStatus int
 
 const (
@@ -98,11 +122,11 @@ func NewPusher(repo *repository.Repository) *Pusher {
 
 func (p *Pusher) Push(ctx context.Context, options PushOptions) (*PushResult, error) {
 	if options.Remote == "" {
-		options.Remote = "origin"
+		options.Remote = defaultRemote
 	}
 
 	if options.Timeout == 0 {
-		options.Timeout = 5 * time.Minute
+		options.Timeout = defaultTimeout
 	}
 
 	ctx, cancel := context.WithTimeout(ctx, options.Timeout)
@@ -161,7 +185,7 @@ func (p *Pusher) Push(ctx context.Context, options PushOptions) (*PushResult, er
 		return nil, fmt.Errorf("failed to list remote refs: %w", err)
 	}
 
-	remoteBranchRef := fmt.Sprintf("refs/heads/%s", options.Branch)
+	remoteBranchRef := fmt.Sprintf("%s%s", headsPrefix, options.Branch)
 	remoteCommit, exists := remoteRefs[remoteBranchRef]
 
 	if !exists {
@@ -411,8 +435,8 @@ func (p *Pusher) collectTreeObjects(tree *objects.Tree, objectsToSend *[]string,
 func (p *Pusher) createPackFile(objectHashes []string) ([]byte, error) {
 	var packBuffer bytes.Buffer
 	// write pack header: "PACK" + version + object count
-	packBuffer.WriteString("PACK")
-	binary.Write(&packBuffer, binary.BigEndian, uint32(2)) // Version 2
+	packBuffer.WriteString(packSignature)
+	binary.Write(&packBuffer, binary.BigEndian, uint32(packVersion))
 	binary.Write(&packBuffer, binary.BigEndian, uint32(len(objectHashes)))
 
 	for _, hash := range objectHashes {
@@ -444,13 +468,13 @@ func (p *Pusher) createPackObject(hash string) ([]byte, error) {
 	// determine object type and get raw data
 	switch o := obj.(type) {
 	case *objects.Blob:
-		objType = 3 // OBJ_BLOB
+		objType = objBlob
 		objData = o.Content()
 	case *objects.Tree:
-		objType = 2 // OBJ_TREE
+		objType = objTree
 		objData = o.Data()
 	case *objects.Commit:
-		objType = 1 // OBJ_COMMIT
+		objType = objCommit
 		objData = o.Data()
 	default:
 		return nil, fmt.Errorf("unsupported object type for %s", hash)
@@ -478,21 +502,21 @@ func (p *Pusher) createObjectHeader(objType int, size int64) []byte {
 	var header []byte
 
 	// first byte: MSB=0, type (3 bits), size (4 bits)
-	firstByte := byte((objType << 4) | (int(size) & 0xF))
-	size >>= 4
+	firstByte := byte((objType << typeBits) | (int(size) & sizeMask))
+	size >>= typeBits
 
 	if size > 0 {
-		firstByte |= 0x80 // Set continuation bit
+		firstByte |= continuationBit // Set continuation bit
 	}
 
 	header = append(header, firstByte)
 
 	// additional bytes for larger sizes
 	for size > 0 {
-		nextByte := byte(size & 0x7F)
+		nextByte := byte(size & sevenBitMask)
 		size >>= 7
 		if size > 0 {
-			nextByte |= 0x80 // Set continuation bit
+			nextByte |= continuationBit // Set continuation bit
 		}
 
 		header = append(header, nextByte)
@@ -509,7 +533,7 @@ func (p *Pusher) setUpstream(branch, remote string) error {
 	merge = refs/heads/%s
 `, branch, remote, branch)
 
-	file, err := os.OpenFile(configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	file, err := os.OpenFile(configPath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, defaultFileMode)
 	if err != nil {
 		return fmt.Errorf("failed to open config file: %w", err)
 	}
@@ -528,14 +552,14 @@ func (p *Pusher) getUpdateMessage(result *PushResult) string {
 	}
 
 	if result.Forced {
-		return fmt.Sprintf("forced update %s..%s", result.OldCommit[:7], result.NewCommit[:7])
+		return fmt.Sprintf("forced update %s..%s", result.OldCommit[:shortHashLength], result.NewCommit[:shortHashLength])
 	}
 
 	if result.FastForward {
-		return fmt.Sprintf("fast-forward %s..%s", result.OldCommit[:7], result.NewCommit[:7])
+		return fmt.Sprintf("fast-forward %s..%s", result.OldCommit[:shortHashLength], result.NewCommit[:shortHashLength])
 	}
 
-	return fmt.Sprintf("updated %s..%s", result.OldCommit[:7], result.NewCommit[:7])
+	return fmt.Sprintf("updated %s..%s", result.OldCommit[:shortHashLength], result.NewCommit[:shortHashLength])
 }
 
 func (p *Pusher) PushAll(ctx context.Context, options PushOptions) (*PushResult, error) {
@@ -557,7 +581,7 @@ func (p *Pusher) PushAll(ctx context.Context, options PushOptions) (*PushResult,
 
 		branchResult, err := p.Push(ctx, branchOptions)
 		if err != nil {
-			result.RejectedRefs[fmt.Sprintf("refs/heads/%s", branch)] = err.Error()
+			result.RejectedRefs[fmt.Sprintf("%s%s", headsPrefix, branch)] = err.Error()
 			continue
 		}
 
@@ -604,7 +628,7 @@ func (p *Pusher) PushTags(ctx context.Context, options PushOptions) (*PushResult
 	}
 
 	for _, tag := range tags {
-		tagRef := fmt.Sprintf("refs/tags/%s", tag)
+		tagRef := fmt.Sprintf("%s%s", tagsPrefix, tag)
 
 		tagHash, err := p.getTagHash(tag)
 		if err != nil {
@@ -656,12 +680,12 @@ func (p *Pusher) getTagHash(tag string) (string, error) {
 
 func DefaultPushOptions() PushOptions {
 	return PushOptions{
-		Remote:      "origin",
+		Remote:      defaultRemote,
 		Force:       false,
 		SetUpstream: false,
 		PushAll:     false,
 		PushTags:    false,
 		DryRun:      false,
-		Timeout:     5 * time.Minute,
+		Timeout:     defaultTimeout,
 	}
 }
