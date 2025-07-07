@@ -12,6 +12,17 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
+const (
+	defaultDirMode       = 0755
+	directoryMode        = 0o040000
+	gitHashLength        = 40
+	minShortHashLength   = 4
+	hashPrefixLength     = 2
+	headRef              = "HEAD"
+	headsPrefix          = "refs/heads/"
+	objectsDir           = "objects"
+)
+
 type ResetMode int
 
 const (
@@ -65,7 +76,7 @@ func Reset(repo *repository.Repository, target string, mode ResetMode, paths []s
 		return errors.NewGitError("reset", "", err)
 	}
 
-	refPath := fmt.Sprintf("refs/heads/%s", currentBranch)
+	refPath := fmt.Sprintf("%s%s", headsPrefix, currentBranch)
 	if err := repo.UpdateRef(refPath, targetHash); err != nil {
 		return errors.NewGitError("reset", refPath, err)
 	}
@@ -185,7 +196,7 @@ func addTreeToIndex(repo *repository.Repository, idx *index.Index, tree *objects
 			entryPath = filepath.Join(basePath, entry.Name)
 		}
 
-		if entry.Mode == 0o040000 { // Directory
+		if entry.Mode == directoryMode { // Directory
 			subtreeObj, err := repo.LoadObject(entry.Hash)
 			if err != nil {
 				return errors.NewObjectError(entry.Hash, "tree", fmt.Errorf("load subtree: %w", err))
@@ -229,8 +240,8 @@ func restoreTreeToWorkingDir(repo *repository.Repository, tree *objects.Tree, ba
 
 		fullPath := filepath.Join(repo.WorkDir, entryPath)
 
-		if entry.Mode == 0o040000 { // Directory
-			if err := os.MkdirAll(fullPath, 0755); err != nil {
+		if entry.Mode == directoryMode { // Directory
+			if err := os.MkdirAll(fullPath, defaultDirMode); err != nil {
 				return errors.NewGitError("reset", entryPath, fmt.Errorf("create directory '%s': %w", entryPath, err))
 			}
 
@@ -259,7 +270,7 @@ func restoreTreeToWorkingDir(repo *repository.Repository, tree *objects.Tree, ba
 				return errors.NewObjectError(entry.Hash, "blob", errors.ErrInvalidBlob)
 			}
 
-			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(fullPath), defaultDirMode); err != nil {
 				return errors.NewGitError("reset", entryPath, fmt.Errorf("create parent directory for '%s': %w", entryPath, err))
 			}
 
@@ -274,7 +285,7 @@ func restoreTreeToWorkingDir(repo *repository.Repository, tree *objects.Tree, ba
 
 func resetPathInIndex(idx *index.Index, tree *objects.Tree, path string) error {
 	for _, entry := range tree.Entries() {
-		if entry.Name == path && entry.Mode != 0o040000 {
+		if entry.Name == path && entry.Mode != directoryMode {
 			idx.Remove(path)
 
 			if err := idx.Add(path, entry.Hash, uint32(entry.Mode), 0, time.Now()); err != nil {
@@ -290,17 +301,17 @@ func resetPathInIndex(idx *index.Index, tree *objects.Tree, path string) error {
 
 // resolveTarget resolves a target reference to a commit hash
 func resolveTarget(repo *repository.Repository, target string) (string, error) {
-	if target == "" || target == "HEAD" {
+	if target == "" || target == headRef {
 		return repo.GetHead()
 	}
 
 	// full hash first
-	if len(target) == 40 {
+	if len(target) == gitHashLength {
 		return target, nil
 	}
 
 	// short hash - expand to full hash by finding matching object
-	if len(target) >= 4 && len(target) <= 40 {
+	if len(target) >= minShortHashLength && len(target) <= gitHashLength {
 		fullHash, err := expandShortHash(repo, target)
 		if err == nil {
 			return fullHash, nil
@@ -308,7 +319,7 @@ func resolveTarget(repo *repository.Repository, target string) (string, error) {
 	}
 
 	// branch reference
-	branchRef := fmt.Sprintf("refs/heads/%s", target)
+	branchRef := fmt.Sprintf("%s%s", headsPrefix, target)
 	if hash, err := readRef(repo, branchRef); err == nil {
 		return hash, nil
 	}
@@ -318,17 +329,17 @@ func resolveTarget(repo *repository.Repository, target string) (string, error) {
 
 // expandShortHash finds the full hash for a short hash
 func expandShortHash(repo *repository.Repository, shortHash string) (string, error) {
-	objectsDir := filepath.Join(repo.GitDir, "objects")
+	objectsDirPath := filepath.Join(repo.GitDir, objectsDir)
 
 	// short hash format: first 2 chars as directory, rest as filename prefix
-	if len(shortHash) < 4 {
+	if len(shortHash) < minShortHashLength {
 		return "", errors.NewGitError("reset", shortHash, fmt.Errorf("short hash too short"))
 	}
 
-	prefix := shortHash[:2]
-	suffix := shortHash[2:]
+	prefix := shortHash[:hashPrefixLength]
+	suffix := shortHash[hashPrefixLength:]
 
-	dirPath := filepath.Join(objectsDir, prefix)
+	dirPath := filepath.Join(objectsDirPath, prefix)
 	entries, err := os.ReadDir(dirPath)
 	if err != nil {
 		return "", errors.NewGitError("reset", dirPath, fmt.Errorf("read objects directory: %w", err))
@@ -361,8 +372,8 @@ func readRef(repo *repository.Repository, refPath string) (string, error) {
 	}
 
 	hash := string(content)
-	if len(hash) > 40 {
-		hash = hash[:40]
+	if len(hash) > gitHashLength {
+		hash = hash[:gitHashLength]
 	}
 
 	return hash, nil
