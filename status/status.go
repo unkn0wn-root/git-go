@@ -230,11 +230,42 @@ func getHeadFiles(repo *repository.Repository, headHash string) (map[string]stri
 	}
 
 	files := make(map[string]string)
-	for _, entry := range tree.Entries() {
-		files[entry.Name] = entry.Hash
+	if err := walkTree(repo, tree, "", files); err != nil {
+		return nil, err
 	}
 
 	return files, nil
+}
+
+// walkTree recursively walks a Git tree and collects all files
+func walkTree(repo *repository.Repository, tree *objects.Tree, prefix string, files map[string]string) error {
+	for _, entry := range tree.Entries() {
+		path := entry.Name
+		if prefix != "" {
+			path = filepath.Join(prefix, entry.Name)
+		}
+
+		switch entry.Mode {
+		case objects.FileModeTree:
+			// Recursively walk subdirectory
+			subtreeObj, err := repo.LoadObject(entry.Hash)
+			if err != nil {
+				return err
+			}
+			subtree, ok := subtreeObj.(*objects.Tree)
+			if !ok {
+				return fmt.Errorf("object %s is not a tree", entry.Hash)
+			}
+			if err := walkTree(repo, subtree, path, files); err != nil {
+				return err
+			}
+		case objects.FileModeBlob, objects.FileModeExecutable:
+			// Convert path to forward slashes for Git compatibility
+			gitPath := filepath.ToSlash(path)
+			files[gitPath] = entry.Hash
+		}
+	}
+	return nil
 }
 
 func getWorkingFiles(repo *repository.Repository) (map[string]string, error) {
@@ -268,7 +299,9 @@ func getWorkingFiles(repo *repository.Repository) (map[string]string, error) {
 		}
 
 		objHash := hash.ComputeObjectHash("blob", content)
-		files[relPath] = objHash
+		// Convert path to forward slashes for Git compatibility
+		gitPath := filepath.ToSlash(relPath)
+		files[gitPath] = objHash
 
 		return nil
 	})
