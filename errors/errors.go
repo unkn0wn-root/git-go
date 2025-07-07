@@ -36,6 +36,17 @@ var (
 	ErrUnsupportedProtocol  = stderrors.New("unsupported protocol")
 )
 
+type ObjectError struct {
+	Hash string
+	Type string
+	Err  error
+}
+
+type IndexError struct {
+	Path string
+	Err  error
+}
+
 type GitError struct {
 	Op   string
 	Path string
@@ -60,13 +71,6 @@ func NewGitError(op, path string, err error) *GitError {
 		Err:  err,
 	}
 }
-
-type ObjectError struct {
-	Hash string
-	Type string
-	Err  error
-}
-
 func (e *ObjectError) Error() string {
 	return fmt.Sprintf("object %s (%s): %v", e.Hash, e.Type, e.Err)
 }
@@ -81,11 +85,6 @@ func NewObjectError(hash, objType string, err error) *ObjectError {
 		Type: objType,
 		Err:  err,
 	}
-}
-
-type IndexError struct {
-	Path string
-	Err  error
 }
 
 func (e *IndexError) Error() string {
