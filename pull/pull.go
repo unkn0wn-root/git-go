@@ -354,8 +354,9 @@ func (p *Puller) ensureIndexLoaded() error {
 		p.index = index.New(p.repo.GitDir)
 	}
 
-	// Try to load existing index, ignore errors for missing index
-	p.index.Load()
+	if err := p.index.Load(); err != nil {
+		return fmt.Errorf("failed to load git index: %w", err)
+	}
 	return nil
 }
 
