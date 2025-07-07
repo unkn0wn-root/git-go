@@ -562,28 +562,30 @@ func (p *PackProcessor) resolveAllDeltas() error {
 		p.resolvedCache[obj.Hash] = obj
 	}
 
-	resolving := make(map[string]bool)
+	resolving := make(map[int64]bool)
 
 	for _, delta := range deltas {
 		if err := p.resolveDeltaRecursive(delta, resolving); err != nil {
-			return fmt.Errorf("failed to resolve delta %s: %w", delta.Hash, err)
+			return fmt.Errorf("failed to resolve delta at offset %d: %w", delta.Offset, err)
 		}
 	}
 
 	return nil
 }
 
-func (p *PackProcessor) resolveDeltaRecursive(delta *PackObject, resolving map[string]bool) error {
-	if p.resolvedCache[delta.Hash] != nil {
+func (p *PackProcessor) resolveDeltaRecursive(delta *PackObject, resolving map[int64]bool) error {
+	// Check if already resolved (use existing hash if available)
+	if delta.Hash != "" && p.resolvedCache[delta.Hash] != nil {
 		return nil
 	}
 
-	if resolving[delta.Hash] {
-		return fmt.Errorf("circular delta dependency detected for object %s", delta.Hash)
+	// Use offset as unique identifier for tracking circular dependencies
+	if resolving[delta.Offset] {
+		return fmt.Errorf("circular delta dependency detected for object at offset %d", delta.Offset)
 	}
 
-	resolving[delta.Hash] = true
-	defer delete(resolving, delta.Hash)
+	resolving[delta.Offset] = true
+	defer delete(resolving, delta.Offset)
 
 	var baseObj *PackObject
 	var err error
