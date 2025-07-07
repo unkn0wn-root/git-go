@@ -2,7 +2,7 @@
 
 A Git implementation written in Go
 
-**Note**: This is pretty much WIP and some things may be broken in some cases and code also comments are missing. These will be worked on when the implementation is stabilized (or if).
+**Note**: This is pretty much WIP and some things may be broken in some cases and code comments are very basic (or lacking, to say it). These will be worked on when the implementation is stabilized (or if).
 
 ## Installation
 
