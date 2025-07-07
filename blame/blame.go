@@ -12,6 +12,16 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
+const (
+	shortHashLength     = 8
+	contextWindowSize   = 3
+	unknownAuthor      = "Unknown"
+	timeFormat         = "2006-01-02 15:04:05"
+
+	// line numbering starts from 1
+	firstLineNumber    = 1
+)
+
 type BlameLine struct {
 	LineNumber int
 	Content    string
@@ -30,9 +40,9 @@ func (br *BlameResult) String() string {
 
 	for _, line := range br.Lines {
 		buf.WriteString(fmt.Sprintf("%s (%s %s %d) %s\n",
-			line.CommitHash[:8],
+			line.CommitHash[:shortHashLength],
 			line.Author,
-			line.AuthorTime.Format("2006-01-02 15:04:05"),
+			line.AuthorTime.Format(timeFormat),
 			line.LineNumber,
 			line.Content,
 		))
@@ -63,20 +73,20 @@ func BlameFile(repo *repository.Repository, filePath, commitHash string) (*Blame
 	blameLines := make([]BlameLine, len(lines))
 
 	for i, line := range lines {
-		commit, err := findCommitForLine(repo, commitHash, filePath, i+1)
+		commit, err := findCommitForLine(repo, commitHash, filePath, i+firstLineNumber)
 		if err != nil {
 			blameLines[i] = BlameLine{
-				LineNumber: i + 1,
+				LineNumber: i + firstLineNumber,
 				Content:    line,
 				CommitHash: commitHash,
-				Author:     "Unknown",
+				Author:     unknownAuthor,
 				AuthorTime: time.Now(),
 			}
 			continue
 		}
 
 		blameLines[i] = BlameLine{
-			LineNumber: i + 1,
+			LineNumber: i + firstLineNumber,
 			Content:    line,
 			CommitHash: commit.Hash(),
 			Author:     commit.Author().Name,
@@ -186,7 +196,7 @@ func findCommitForLineRecursive(repo *repository.Repository, commitHash, filePat
 		mappedLine := findLineInParent(currentLines, parentLines, lineNumber)
 		if mappedLine > 0 && mappedLine <= len(parentLines) {
 			// Line exists in parent, check if it's the same
-			if currentLines[lineNumber-1] == parentLines[mappedLine-1] {
+			if currentLines[lineNumber-firstLineNumber] == parentLines[mappedLine-firstLineNumber] {
 				// Line unchanged, continue tracking in parent
 				return findCommitForLineRecursive(repo, parentHash, filePath, mappedLine, visited)
 			}
@@ -203,14 +213,14 @@ func findLineInParent(currentLines, parentLines []string, currentLineNum int) in
 		return 0
 	}
 
-	currentLine := currentLines[currentLineNum-1]
+	currentLine := currentLines[currentLineNum-firstLineNumber]
 
 	// Simple line matching approach (could be enhanced with LCS diff)
 	for i, parentLine := range parentLines {
 		if parentLine == currentLine {
 			// Found matching line, adjust for surrounding context
-			offset := findBestOffset(currentLines, parentLines, currentLineNum-1, i)
-			return i + 1 + offset
+			offset := findBestOffset(currentLines, parentLines, currentLineNum-firstLineNumber, i)
+			return i + firstLineNumber + offset
 		}
 	}
 
@@ -221,11 +231,10 @@ func findLineInParent(currentLines, parentLines []string, currentLineNum int) in
 // findBestOffset improves line mapping accuracy by checking surrounding context
 func findBestOffset(currentLines, parentLines []string, currentIdx, parentIdx int) int {
 	// Use small context window to find best line alignment
-	windowSize := 3
 	maxScore := -1
 	bestOffset := 0
 
-	for offset := -windowSize; offset <= windowSize; offset++ {
+	for offset := -contextWindowSize; offset <= contextWindowSize; offset++ {
 		score := 0
 		newParentIdx := parentIdx + offset
 
@@ -234,7 +243,7 @@ func findBestOffset(currentLines, parentLines []string, currentIdx, parentIdx in
 		}
 
 		// Score based on matching surrounding lines
-		for i := -windowSize; i <= windowSize; i++ {
+		for i := -contextWindowSize; i <= contextWindowSize; i++ {
 			curIdx := currentIdx + i
 			parIdx := newParentIdx + i
 
