@@ -12,7 +12,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-    "syscall"
 
 	"github.com/unkn0wn-root/git-go/errors"
 	"github.com/unkn0wn-root/git-go/hash"
@@ -158,8 +157,8 @@ func (idx *Index) AddWithFileInfo(path, objHash string, mode uint32, fileInfo os
 		return errors.NewIndexError(path, errors.ErrInvalidHash)
 	}
 
-	// get filesystem metadata
-	stat := fileInfo.Sys().(*syscall.Stat_t)
+	// get filesystem metadata using platform-specific func
+	ctime, ctimeNs, dev, ino, uid, gid := getStatTimes(fileInfo)
 
 	idx.entries[path] = &IndexEntry{
 		Path:         path,
@@ -167,13 +166,13 @@ func (idx *Index) AddWithFileInfo(path, objHash string, mode uint32, fileInfo os
 		Mode:         mode,
 		Size:         fileInfo.Size(),
 		ModTime:      fileInfo.ModTime(),
-		CreateTime:   time.Unix(stat.Ctimespec.Sec, 0), // Only use seconds for ctime
-		CreateTimeNs: uint32(stat.Ctimespec.Nsec),      // Store nanoseconds separately
+		CreateTime:   ctime,
+		CreateTimeNs: ctimeNs,
 		ModTimeNs:    uint32(fileInfo.ModTime().Nanosecond()),
-		Dev:          uint32(stat.Dev),
-		Ino:          uint32(stat.Ino),
-		UID:          stat.Uid,
-		GID:          stat.Gid,
+		Dev:          dev,
+		Ino:          ino,
+		UID:          uid,
+		GID:          gid,
 		Staged:       true,
 	}
 	return nil

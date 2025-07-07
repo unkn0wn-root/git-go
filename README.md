@@ -4,6 +4,7 @@ A Git implementation written in Go.
 
 **Note**: This is pretty much WIP and some things may be broken in some cases and code comments are very basic (or mostly lacking, to say it). These will be worked on when the implementation is stabilized (or if).
 
+**Note 2**: Since I'm operating with Unix style file metadata and I don't really care about Windows implementation right now - Windows is not supported.
 ## Installation
 
 ### Download binary
