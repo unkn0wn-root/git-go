@@ -15,6 +15,25 @@ import (
 	"golang.org/x/crypto/ssh/agent"
 )
 
+const (
+	defaultSSHPort    = "22"
+	defaultSSHTimeout = 10 * time.Second
+	defaultGitUser    = "git"
+	sshProtocol       = "tcp"
+	sshURLPrefix      = "ssh://"
+	sshDirName        = ".ssh"
+	sshCommand        = "ssh"
+
+	// SSH key file names
+	keyRSA     = "id_rsa"
+	keyED25519 = "id_ed25519"
+	keyECDSA   = "id_ecdsa"
+
+	// env variables
+	sshAuthSock = "SSH_AUTH_SOCK"
+	unixNetwork = "unix"
+)
+
 type SSHClient struct {
 	client  *ssh.Client
 	host    string
@@ -52,9 +71,9 @@ func (c *SSHClient) Connect(ctx context.Context) (*SSHConnection, error) {
 
 	homeDir, err := os.UserHomeDir()
 	if err == nil {
-		defaultKeys := []string{"id_rsa", "id_ed25519", "id_ecdsa"}
+		defaultKeys := []string{keyRSA, keyED25519, keyECDSA}
 		for _, keyName := range defaultKeys {
-			keyPath := filepath.Join(homeDir, ".ssh", keyName)
+			keyPath := filepath.Join(homeDir, sshDirName, keyName)
 			if keyAuth, err := c.keyFileAuth(keyPath); err == nil {
 				authMethods = append(authMethods, keyAuth)
 			}
@@ -69,11 +88,11 @@ func (c *SSHClient) Connect(ctx context.Context) (*SSHConnection, error) {
 		User:            c.user,
 		Auth:            authMethods,
 		HostKeyCallback: ssh.InsecureIgnoreHostKey(), // todo: Implement proper host key verification
-		Timeout:         10 * time.Second,
+		Timeout:         defaultSSHTimeout,
 	}
 
 	addr := net.JoinHostPort(c.host, c.port)
-	client, err := ssh.Dial("tcp", addr, config)
+	client, err := ssh.Dial(sshProtocol, addr, config)
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to SSH server: %w", err)
 	}
@@ -84,7 +103,7 @@ func (c *SSHClient) Connect(ctx context.Context) (*SSHConnection, error) {
 }
 
 func (c *SSHClient) tryAgentAuth() ssh.AuthMethod {
-	agentConn, err := net.Dial("unix", os.Getenv("SSH_AUTH_SOCK"))
+	agentConn, err := net.Dial(unixNetwork, os.Getenv(sshAuthSock))
 	if err != nil {
 		return nil
 	}
@@ -174,7 +193,7 @@ func ExecuteSSHCommand(ctx context.Context, host, port, user, command string, ar
 	}
 	sshArgs = append(sshArgs, args...)
 
-	cmd := exec.CommandContext(ctx, "ssh", sshArgs...)
+	cmd := exec.CommandContext(ctx, sshCommand, sshArgs...)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get stdin pipe: %w", err)
@@ -216,8 +235,8 @@ func (c *cmdStream) Close() error {
 }
 
 func ParseGitSSHURL(url string) (user, host, port, repo string, err error) {
-	// fandle git@host:repo format
-	if strings.Contains(url, "@") && strings.Contains(url, ":") && !strings.HasPrefix(url, "ssh://") {
+	// handle git@host:repo format
+	if strings.Contains(url, "@") && strings.Contains(url, ":") && !strings.HasPrefix(url, sshURLPrefix) {
 		parts := strings.SplitN(url, "@", 2)
 		if len(parts) != 2 {
 			return "", "", "", "", fmt.Errorf("invalid SSH URL format")
@@ -232,13 +251,13 @@ func ParseGitSSHURL(url string) (user, host, port, repo string, err error) {
 
 		host = hostRepo[:colonIdx]
 		repo = hostRepo[colonIdx+1:]
-		port = "22"
+		port = defaultSSHPort
 		return
 	}
 
 	// handle ssh://user@host:port/repo format
-	if strings.HasPrefix(url, "ssh://") {
-		url = strings.TrimPrefix(url, "ssh://")
+	if strings.HasPrefix(url, sshURLPrefix) {
+		url = strings.TrimPrefix(url, sshURLPrefix)
 
 		parts := strings.SplitN(url, "@", 2)
 		if len(parts) == 2 {
@@ -260,11 +279,11 @@ func ParseGitSSHURL(url string) (user, host, port, repo string, err error) {
 			port = hostPortParts[1]
 		} else {
 			host = hostPort
-			port = "22"
+			port = defaultSSHPort
 		}
 
 		if user == "" {
-			user = "git"
+			user = defaultGitUser
 		}
 
 		return
