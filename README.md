@@ -2,9 +2,12 @@
 
 A Git implementation written in Go.
 
-**Note**: This is pretty much WIP and some things may be broken in some cases and code comments are very basic (or mostly lacking, to say it). These will be worked on when the implementation is stabilized (or if).
+**Note**: This is pretty much WIP and some things may be broken in some cases. There are no docs. and code comments are almost non-existing but these will be worked on when the implementation is stabilized (if ever). You're welcome to create PR and fix bugs, add features etc.
 
-**Note 2**: Since I'm operating with Unix style file metadata and I don't really care about Windows implementation right now - Windows is not supported.
+**Note 2**: Since I'm operating with Unix style file metadata and I don't really care about Windows implementation right now - **Windows is not supported**.
+
+**Note 3**: Git credential helpers (like `git-credential-store`, `git-credential-osxkeychain`, etc.) are **not yet supported**. You must configure authentication manually (see [here](#authentication)).
+
 ## Installation
 
 ### Download binary
@@ -90,6 +93,78 @@ go build -o git-go
 ./git-go push [remote] [branch]
 ```
 
+## Authentication
+
+### GitHub Authentication
+
+For GitHub repositories, use a Personal Access Token (PAT):
+
+```bash
+# Set your GitHub token
+export GITHUB_TOKEN="your_personal_access_token"
+
+# Then use HTTPS URLs
+./git-go clone https://github.com/username/repo.git
+./git-go push origin main
+```
+
+### GitLab Authentication
+
+For GitLab repositories, use a Personal Access Token:
+
+```bash
+# Set your GitLab token
+export GITLAB_TOKEN="your_personal_access_token"
+
+# Then use HTTPS URLs
+./git-go clone https://gitlab.com/username/repo.git
+./git-go push origin main
+```
+
+### SSH Authentication
+
+SSH authentication is supported using:
+
+1. **SSH Agent** (recommended):
+   ```bash
+   # Start ssh-agent and add your key
+   eval $(ssh-agent -s)
+   ssh-add ~/.ssh/id_rsa
+
+   # Use SSH URLs
+   ./git-go clone git@github.com:username/repo.git
+   ```
+
+2. **Direct SSH Key**:
+   ```bash
+   # Will automatically discover keys in ~/.ssh/
+   # Supports: id_rsa, id_ed25519, id_ecdsa
+   ./git-go clone git@github.com:username/repo.git
+   ```
+
+### Basic HTTP Authentication
+
+For repositories requiring username/password:
+
+```bash
+export GIT_USERNAME="your_username"
+export GIT_PASSWORD="your_password"
+
+./git-go clone https://superdomain.lucky/repo.git
+```
+
+### Creating Personal Access Tokens
+
+**GitHub**:
+1. Go to GitHub Settings → Developer settings → Personal access tokens
+2. Generate new token with needed permissions (repo, etc.)
+3. Copy the token and set it as `GITHUB_TOKEN`
+
+**GitLab**:
+1. Go to GitLab User Settings → Access Tokens
+2. Create new token with scopes (read_repository, write_repository, etc.)
+3. Copy the token and set it as `GITLAB_TOKEN`
+
 ## Testing
 
 ```bash
@@ -104,5 +179,5 @@ go test -cover ./...
 git-go tries to maintain full compatibility with standard Git repositories:
 - Objects created by git-go can be read by Git
 - Repositories initialized by git-go work with Git commands
-- Index files are fully compatible between implementations
+- Index files are fully (or should be) compatible between implementations
 - Reference structure follows Git conventions
