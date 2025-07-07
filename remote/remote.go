@@ -597,15 +597,21 @@ func buildPushRequest(updates map[string]RefUpdate) []byte {
 
 	first := true
 	for _, update := range updates {
+		// use zero hash for new branches
+		oldHash := update.OldHash
+		if oldHash == "" {
+			oldHash = "0000000000000000000000000000000000000000"
+		}
+
 		var line string
 		if first {
 			// Include capabilities on first command
 			line = fmt.Sprintf("%s %s %s\x00report-status side-band-64k\n",
-				update.OldHash, update.NewHash, update.RefName)
+				oldHash, update.NewHash, update.RefName)
 			first = false
 		} else {
 			line = fmt.Sprintf("%s %s %s\n",
-				update.OldHash, update.NewHash, update.RefName)
+				oldHash, update.NewHash, update.RefName)
 		}
 
 		pktLine := fmt.Sprintf("%04x%s", len(line)+4, line)
