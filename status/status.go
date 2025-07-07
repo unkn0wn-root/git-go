@@ -237,7 +237,6 @@ func getHeadFiles(repo *repository.Repository, headHash string) (map[string]stri
 	return files, nil
 }
 
-// walkTree recursively walks a Git tree and collects all files
 func walkTree(repo *repository.Repository, tree *objects.Tree, prefix string, files map[string]string) error {
 	for _, entry := range tree.Entries() {
 		path := entry.Name
@@ -247,7 +246,6 @@ func walkTree(repo *repository.Repository, tree *objects.Tree, prefix string, fi
 
 		switch entry.Mode {
 		case objects.FileModeTree:
-			// Recursively walk subdirectory
 			subtreeObj, err := repo.LoadObject(entry.Hash)
 			if err != nil {
 				return err
@@ -260,7 +258,6 @@ func walkTree(repo *repository.Repository, tree *objects.Tree, prefix string, fi
 				return err
 			}
 		case objects.FileModeBlob, objects.FileModeExecutable:
-			// Convert path to forward slashes for Git compatibility
 			gitPath := filepath.ToSlash(path)
 			files[gitPath] = entry.Hash
 		}
@@ -299,7 +296,6 @@ func getWorkingFiles(repo *repository.Repository) (map[string]string, error) {
 		}
 
 		objHash := hash.ComputeObjectHash("blob", content)
-		// Convert path to forward slashes for Git compatibility
 		gitPath := filepath.ToSlash(relPath)
 		files[gitPath] = objHash
 
