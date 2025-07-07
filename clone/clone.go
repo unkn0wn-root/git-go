@@ -8,6 +8,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkn0wn-root/git-go/index"
 	"github.com/unkn0wn-root/git-go/objects"
 	"github.com/unkn0wn-root/git-go/pack"
 	"github.com/unkn0wn-root/git-go/remote"
@@ -188,7 +189,6 @@ func (c *Cloner) inferDirectoryName(url string) string {
 	}
 
 	name := parts[len(parts)-1]
-
 	if strings.HasSuffix(name, ".git") {
 		name = strings.TrimSuffix(name, ".git")
 	}
@@ -320,57 +320,18 @@ func (c *Cloner) checkoutBranch(repo *repository.Repository, commitHash string, 
 		return fmt.Errorf("tree object is not a tree")
 	}
 
-	return c.checkoutTree(repo, tree, "", result)
-}
+	idx := index.New(repo.GitDir)
+	updatedFiles, err := repo.CheckoutTreeWithIndex(tree, idx, "")
+	if err != nil {
+		return err
+	}
 
-func (c *Cloner) checkoutTree(repo *repository.Repository, tree *objects.Tree, prefix string, result *CloneResult) error {
-	for _, entry := range tree.Entries() {
-		fullPath := filepath.Join(repo.WorkDir, prefix, entry.Name)
+	for range updatedFiles {
+		result.ObjectCount++
+	}
 
-		switch entry.Mode {
-		case objects.FileModeTree:
-			if err := os.MkdirAll(fullPath, 0755); err != nil {
-				return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
-			}
-
-			subTreeObj, err := repo.LoadObject(entry.Hash)
-			if err != nil {
-				return fmt.Errorf("failed to load subtree: %w", err)
-			}
-
-			subTree, ok := subTreeObj.(*objects.Tree)
-			if !ok {
-				return fmt.Errorf("subtree object is not a tree")
-			}
-
-			if err := c.checkoutTree(repo, subTree, filepath.Join(prefix, entry.Name), result); err != nil {
-				return err
-			}
-
-		case objects.FileModeBlob, objects.FileModeExecutable:
-			blobObj, err := repo.LoadObject(entry.Hash)
-			if err != nil {
-				return fmt.Errorf("failed to load blob: %w", err)
-			}
-
-			blob, ok := blobObj.(*objects.Blob)
-			if !ok {
-				return fmt.Errorf("blob object is not a blob")
-			}
-
-			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
-				return fmt.Errorf("failed to create directory for %s: %w", fullPath, err)
-			}
-
-			mode := os.FileMode(0644)
-			if entry.Mode == objects.FileModeExecutable {
-				mode = os.FileMode(0755)
-			}
-
-			if err := os.WriteFile(fullPath, blob.Content(), mode); err != nil {
-				return fmt.Errorf("failed to write file %s: %w", fullPath, err)
-			}
-		}
+	if err := idx.Save(); err != nil {
+		return fmt.Errorf("failed to save index: %w", err)
 	}
 
 	return nil

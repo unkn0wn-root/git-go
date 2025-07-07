@@ -9,6 +9,7 @@ import (
 
 	"github.com/unkn0wn-root/git-go/errors"
 	"github.com/unkn0wn-root/git-go/hash"
+	"github.com/unkn0wn-root/git-go/index"
 	"github.com/unkn0wn-root/git-go/objects"
 )
 
@@ -208,4 +209,73 @@ func (r *Repository) GetCurrentBranch() (string, error) {
 	}
 
 	return "", errors.ErrInvalidReference
+}
+
+func (r *Repository) CheckoutTreeWithIndex(tree *objects.Tree, idx *index.Index, prefix string) ([]string, error) {
+	var updatedFiles []string
+	for _, entry := range tree.Entries() {
+		fullPath := filepath.Join(r.WorkDir, prefix, entry.Name)
+		relativePath := filepath.Join(prefix, entry.Name)
+		gitPath := filepath.ToSlash(relativePath)
+
+		switch entry.Mode {
+		case objects.FileModeTree:
+			if err := os.MkdirAll(fullPath, 0755); err != nil {
+				return nil, fmt.Errorf("failed to create directory %s: %w", fullPath, err)
+			}
+
+			subTreeObj, err := r.LoadObject(entry.Hash)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load subtree %s for directory %s: %w", entry.Hash, gitPath, err)
+			}
+
+			subTree, ok := subTreeObj.(*objects.Tree)
+			if !ok {
+				return nil, fmt.Errorf("subtree object is not a tree")
+			}
+
+			subUpdated, err := r.CheckoutTreeWithIndex(subTree, idx, relativePath)
+			if err != nil {
+				return nil, err
+			}
+			updatedFiles = append(updatedFiles, subUpdated...)
+
+		case objects.FileModeBlob, objects.FileModeExecutable:
+			blobObj, err := r.LoadObject(entry.Hash)
+			if err != nil {
+				return nil, fmt.Errorf("failed to load blob %s for file %s: %w", entry.Hash, gitPath, err)
+			}
+
+			blob, ok := blobObj.(*objects.Blob)
+			if !ok {
+				return nil, fmt.Errorf("blob object is not a blob")
+			}
+
+			if err := os.MkdirAll(filepath.Dir(fullPath), 0755); err != nil {
+				return nil, fmt.Errorf("failed to create directory for %s: %w", fullPath, err)
+			}
+
+			mode := os.FileMode(0644)
+			if entry.Mode == objects.FileModeExecutable {
+				mode = os.FileMode(0755)
+			}
+
+			if err := os.WriteFile(fullPath, blob.Content(), mode); err != nil {
+				return nil, fmt.Errorf("failed to write file %s: %w", fullPath, err)
+			}
+
+			stat, err := os.Stat(fullPath)
+			if err != nil {
+				return nil, fmt.Errorf("failed to stat file %s: %w", fullPath, err)
+			}
+
+			if err := idx.Add(gitPath, entry.Hash, uint32(entry.Mode), stat.Size(), stat.ModTime()); err != nil {
+				return nil, fmt.Errorf("failed to add %s to index: %w", gitPath, err)
+			}
+
+			updatedFiles = append(updatedFiles, gitPath)
+		}
+	}
+
+	return updatedFiles, nil
 }
