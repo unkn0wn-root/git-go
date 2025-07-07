@@ -164,16 +164,6 @@ func (idx *Index) GetAll() map[string]*IndexEntry {
 	return result
 }
 
-
-// GetAllEntries returns all entries in the index (for debugging)
-func (idx *Index) GetAllEntries() map[string]*IndexEntry {
-	result := make(map[string]*IndexEntry)
-	for k, v := range idx.entries {
-		result[k] = v
-	}
-	return result
-}
-
 func (idx *Index) IsStaged(path string) bool {
 	entry, exists := idx.entries[path]
 	return exists && entry.Staged
