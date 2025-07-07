@@ -10,6 +10,25 @@ import (
 	"github.com/unkn0wn-root/git-go/errors"
 )
 
+const (
+	gitHashLength     = 20
+	nullTerminator    = "\x00"
+
+	// format constants
+	headerParts       = 2
+
+	// commit header keys
+	treeHeader        = "tree"
+	parentHeader      = "parent"
+	authorHeader      = "author"
+	committerHeader   = "committer"
+
+	// radix for integer parsing
+	decimalBase       = 10
+	hexadecimalBase   = 16
+	int64BitSize      = 64
+)
+
 func ParseObject(objType ObjectType, data []byte) (Object, error) {
 	switch objType {
 	case ObjectTypeBlob:
@@ -56,13 +75,13 @@ func parseTree(data []byte) (*Tree, error) {
 		pos = nullIdx + 1
 
 		// Each hash is exactly 20 bytes in binary format
-		if pos+20 > len(data) {
+		if pos+gitHashLength > len(data) {
 			return nil, errors.NewGitError("parse-tree", "", fmt.Errorf("insufficient data for hash"))
 		}
 
-		hashBytes := data[pos : pos+20]
+		hashBytes := data[pos : pos+gitHashLength]
 		hash := fmt.Sprintf("%x", hashBytes)
-		pos += 20
+		pos += gitHashLength
 
 		entries = append(entries, TreeEntry{
 			Mode: mode,
@@ -87,7 +106,6 @@ func parseCommit(data []byte) (*Commit, error) {
 	// Parse Git commit format: headers followed by blank line and message
 	for scanner.Scan() {
 		line := scanner.Text()
-
 		if inMessage {
 			messageLines = append(messageLines, line)
 			continue
@@ -98,25 +116,24 @@ func parseCommit(data []byte) (*Commit, error) {
 			continue
 		}
 
-		parts := strings.SplitN(line, " ", 2)
-		if len(parts) != 2 {
+		parts := strings.SplitN(line, " ", headerParts)
+		if len(parts) != headerParts {
 			return nil, errors.NewGitError("parse-commit", "", fmt.Errorf("invalid commit line: %s", line))
 		}
 
 		key, value := parts[0], parts[1]
-
 		switch key {
-		case "tree":
+		case treeHeader:
 			tree = value
-		case "parent":
+		case parentHeader:
 			parents = append(parents, value)
-		case "author":
+		case authorHeader:
 			var err error
 			author, err = ParseSignature(value)
 			if err != nil {
 				return nil, errors.NewGitError("parse-commit", "", fmt.Errorf("invalid author signature: %w", err))
 			}
-		case "committer":
+		case committerHeader:
 			var err error
 			committer, err = ParseSignature(value)
 			if err != nil {
@@ -143,7 +160,7 @@ func parseCommit(data []byte) (*Commit, error) {
 }
 
 func SerializeObject(obj Object) []byte {
-	header := fmt.Sprintf("%s %d\x00", obj.Type(), obj.Size())
+	header := fmt.Sprintf("%s %d%s", obj.Type(), obj.Size(), nullTerminator)
 	return append([]byte(header), obj.Data()...)
 }
 
@@ -154,8 +171,8 @@ func ParseObjectHeader(data []byte) (ObjectType, int64, []byte, error) {
 	}
 
 	header := string(data[:nullIdx])
-	parts := strings.SplitN(header, " ", 2)
-	if len(parts) != 2 {
+	parts := strings.SplitN(header, " ", headerParts)
+	if len(parts) != headerParts {
 		return "", 0, nil, errors.ErrInvalidObjectFormat
 	}
 
@@ -164,7 +181,7 @@ func ParseObjectHeader(data []byte) (ObjectType, int64, []byte, error) {
 		return "", 0, nil, err
 	}
 
-	size, err := strconv.ParseInt(parts[1], 10, 64)
+	size, err := strconv.ParseInt(parts[1], decimalBase, int64BitSize)
 	if err != nil {
 		return "", 0, nil, errors.NewGitError("parse-header", "", fmt.Errorf("invalid object size: %w", err))
 	}
