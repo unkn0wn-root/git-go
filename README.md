@@ -1,8 +1,8 @@
 # git-go
 
-A Git implementation written in Go
+A Git implementation written in Go.
 
-**Note**: This is pretty much WIP and some things may be broken in some cases and code also comments are missing. These will be worked on when the implementation is stabilized (or if).
+**Note**: This is pretty much WIP and some things may be broken in some cases and code comments are very basic (or mostly lacking, to say it). These will be worked on when the implementation is stabilized (or if).
 
 ## Installation
 
@@ -17,6 +17,7 @@ Download the latest binary from the [GitHub releases page](https://github.com/un
 ```bash
 git clone https://github.com/unkn0wn-root/git-go.git
 cd git-go
+go mod download
 go build -o git-go
 ```
 
