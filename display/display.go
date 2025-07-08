@@ -6,6 +6,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/mattn/go-isatty"
 )
 
 type Color string
@@ -239,26 +241,33 @@ func NewSpinner(message string) *Spinner { return defaultFormatter.NewSpinner(me
 func SetColorEnabled(enabled bool) { defaultFormatter.SetColorEnabled(enabled) }
 func IsColorEnabled() bool         { return defaultFormatter.IsColorEnabled() }
 
+// this is a littble bit naive to check if we can output in color like this...
 func isTerminalColorSupported(w io.Writer) bool {
 	if f, ok := w.(*os.File); ok {
 		if f == os.Stdout || f == os.Stderr {
-			term := os.Getenv("TERM")
-			if term == "" || term == "dumb" {
+			if !isatty.IsTerminal(f.Fd()) {
 				return false
 			}
 
 			if os.Getenv("NO_COLOR") != "" {
 				return false
 			}
-
-			if os.Getenv("FORCE_COLOR") != "" {
+			if os.Getenv("FORCE_COLOR") != "" || os.Getenv("COLORTERM") != ""  {
 				return true
+			}
+
+			term := os.Getenv("TERM")
+			if term == "" || term == "dumb" {
+				return false
 			}
 
 			return strings.Contains(term, "color") ||
 				   strings.Contains(term, "xterm") ||
 				   strings.Contains(term, "screen") ||
 				   strings.Contains(term, "tmux") ||
+				   strings.Contains(term, "rxvt") ||
+				   strings.Contains(term, "linux") ||
+				   strings.Contains(term, "cygwin") ||
 				   term == "ansi"
 		}
 	}
