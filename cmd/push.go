@@ -8,9 +8,9 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/unkn0wn-root/git-go/display"
-	"github.com/unkn0wn-root/git-go/push"
-	"github.com/unkn0wn-root/git-go/repository"
+	"github.com/unkn0wn-root/git-go/pkg/display"
+	"github.com/unkn0wn-root/git-go/internal/transport/push"
+	"github.com/unkn0wn-root/git-go/internal/core/repository"
 )
 
 var (
