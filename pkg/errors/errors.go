@@ -36,17 +36,6 @@ var (
 	ErrUnsupportedProtocol  = stderrors.New("unsupported protocol")
 )
 
-type ObjectError struct {
-	Hash string
-	Type string
-	Err  error
-}
-
-type IndexError struct {
-	Path string
-	Err  error
-}
-
 type GitError struct {
 	Op   string
 	Path string
@@ -72,6 +61,12 @@ func (e *GitError) Unwrap() error {
 	return e.Err
 }
 
+type ObjectError struct {
+	Hash string
+	Type string
+	Err  error
+}
+
 func NewObjectError(hash, objType string, err error) *ObjectError {
 	return &ObjectError{
 		Hash: hash,
@@ -85,6 +80,11 @@ func (e *ObjectError) Error() string {
 
 func (e *ObjectError) Unwrap() error {
 	return e.Err
+}
+
+type IndexError struct {
+	Path string
+	Err  error
 }
 
 func NewIndexError(path string, err error) *IndexError {

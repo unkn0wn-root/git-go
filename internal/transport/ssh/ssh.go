@@ -42,11 +42,6 @@ type SSHClient struct {
 	keyPath string
 }
 
-type SSHConnection struct {
-	conn   net.Conn
-	client *ssh.Client
-}
-
 func NewSSHClient(host, port, user, keyPath string) *SSHClient {
 	return &SSHClient{
 		host:    host,
@@ -124,6 +119,11 @@ func (c *SSHClient) keyFileAuth(keyPath string) (ssh.AuthMethod, error) {
 	}
 
 	return ssh.PublicKeys(signer), nil
+}
+
+type SSHConnection struct {
+	conn   net.Conn
+	client *ssh.Client
 }
 
 func (conn *SSHConnection) ExecuteGitCommand(ctx context.Context, command string, args []string) (io.ReadWriteCloser, error) {
