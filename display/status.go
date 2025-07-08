@@ -16,6 +16,12 @@ const (
 	FileStatusUnmodified
 )
 
+type StatusEntry struct {
+	Path        string
+	IndexStatus FileStatus
+	WorkStatus  FileStatus
+}
+
 type StatusFormatter struct {
 	*Formatter
 }
@@ -109,12 +115,6 @@ func (sf *StatusFormatter) FormatUntrackedSection(entries []StatusEntry) string 
 
 func (sf *StatusFormatter) FormatCleanMessage() string {
 	return sf.Apply(SuccessStyle, "nothing to commit, working tree clean")
-}
-
-type StatusEntry struct {
-	Path        string
-	IndexStatus FileStatus
-	WorkStatus  FileStatus
 }
 
 func (sf *StatusFormatter) FormatStatusResult(branch string, entries []StatusEntry, isInitial bool) string {

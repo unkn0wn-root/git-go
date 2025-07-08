@@ -101,16 +101,6 @@ func NewFormatter(w io.Writer) *Formatter {
 	}
 }
 
-func NewFormatterWithColor(w io.Writer, colorEnabled bool) *Formatter {
-	if w == nil {
-		w = os.Stdout
-	}
-	return &Formatter{
-		writer:       w,
-		colorEnabled: colorEnabled,
-	}
-}
-
 func (f *Formatter) SetColorEnabled(enabled bool) { f.colorEnabled = enabled }
 func (f *Formatter) IsColorEnabled() bool         { return f.colorEnabled }
 func (f *Formatter) Apply(style Style, text string) string {
@@ -163,13 +153,18 @@ func (f *Formatter) Printlnf(style Style, format string, args ...interface{}) {
 	f.Println(text, style)
 }
 
-func (f *Formatter) Branch(branch string) string { return f.Apply(BranchStyle, branch) }
-func (f *Formatter) Hash(hash string) string {
-	if len(hash) > 7 {
+func (f *Formatter) Hash(hash string, length ...int) string {
+    // ´hacky´ way for optional param
+    if len(length) > 0 {
+        hash = hash[:length[0]]
+    } else {
 		hash = hash[:7]
-	}
+    }
+
 	return f.Apply(HashStyle, hash)
 }
+
+func (f *Formatter) Branch(branch string) string { return f.Apply(BranchStyle, branch) }
 func (f *Formatter) Path(path string) string       { return f.Apply(DiffPathStyle, path) }
 func (f *Formatter) Success(message string) string { return f.Apply(SuccessStyle, message) }
 func (f *Formatter) Warning(message string) string { return f.Apply(WarningStyle, message) }
@@ -222,8 +217,8 @@ func Println(text string, style ...Style)       { defaultFormatter.Println(text,
 func Printf(format string, args ...interface{}) { defaultFormatter.Printf(format, args...) }
 func Printlnf(style Style, format string, args ...interface{}) { defaultFormatter.Printlnf(style, format, args...) }
 
+func Hash(hash string, length ...int) string { return defaultFormatter.Hash(hash, length...) }
 func Branch(branch string) string    { return defaultFormatter.Branch(branch) }
-func Hash(hash string) string        { return defaultFormatter.Hash(hash) }
 func Path(path string) string        { return defaultFormatter.Path(path) }
 func Success(message string) string  { return defaultFormatter.Success(message) }
 func Warning(message string) string  { return defaultFormatter.Warning(message) }

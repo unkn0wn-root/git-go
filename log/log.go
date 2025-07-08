@@ -11,18 +11,18 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
+type LogOptions struct {
+	MaxCount int
+	Oneline  bool
+	Graph    bool
+}
+
 type LogEntry struct {
 	Hash      string
 	Author    *objects.Signature
 	Committer *objects.Signature
 	Message   string
 	Parents   []string
-}
-
-type LogOptions struct {
-	MaxCount int
-	Oneline  bool
-	Graph    bool
 }
 
 func (le *LogEntry) String(options LogOptions) string {
@@ -33,7 +33,7 @@ func (le *LogEntry) String(options LogOptions) string {
 	}
 
 	var buf strings.Builder
-	buf.WriteString(fmt.Sprintf("%s %s\n", display.Emphasis("commit"), display.Hash(le.Hash)))
+	buf.WriteString(fmt.Sprintf("%s %s\n", display.Emphasis("commit"), le.Hash))
 
 	if le.Author.Name != le.Committer.Name || le.Author.Email != le.Committer.Email ||
 		le.Author.When.Unix() != le.Committer.When.Unix() {

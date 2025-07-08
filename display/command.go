@@ -6,14 +6,6 @@ import (
 	"time"
 )
 
-type CommandFormatter struct {
-	*Formatter
-}
-
-func NewCommandFormatter(f *Formatter) *CommandFormatter {
-	return &CommandFormatter{Formatter: f}
-}
-
 type RefUpdateStatus int
 
 const (
@@ -31,20 +23,28 @@ type RefUpdate struct {
 	Reason  string
 }
 
+type CommandFormatter struct {
+	*Formatter
+}
+
+func NewCommandFormatter(f *Formatter) *CommandFormatter {
+	return &CommandFormatter{Formatter: f}
+}
+
 func (cf *CommandFormatter) FormatPushResult(remote string, updates map[string]RefUpdate, newBranch bool, upstreamSet bool, branch string) string {
 	var buf strings.Builder
-	
+
 	if len(updates) == 0 {
 		buf.WriteString(cf.Apply(InfoStyle, "Everything up-to-date"))
 		return buf.String()
 	}
-	
+
 	buf.WriteString(cf.Apply(InfoStyle, fmt.Sprintf("To %s", remote)))
 	buf.WriteString("\n")
-	
+
 	for refName, update := range updates {
 		branchName := cf.extractBranchName(refName)
-		
+
 		switch update.Status {
 		case RefUpdateUpToDate:
 			buf.WriteString(fmt.Sprintf("   = %s      %s\n",
@@ -80,46 +80,14 @@ func (cf *CommandFormatter) FormatPushResult(remote string, updates map[string]R
 				cf.Apply(ErrorStyle, fmt.Sprintf("(%s)", update.Reason))))
 		}
 	}
-	
+
 	if upstreamSet {
 		buf.WriteString(fmt.Sprintf("Branch '%s' set up to track remote branch '%s' from '%s'.\n",
 			cf.Branch(branch),
 			cf.Branch(branch),
 			cf.Apply(InfoStyle, remote)))
 	}
-	
-	return buf.String()
-}
 
-func (cf *CommandFormatter) FormatPullResult(remote, branch string, commits int, fastForward bool) string {
-	var buf strings.Builder
-	
-	if commits == 0 {
-		buf.WriteString(cf.Apply(InfoStyle, "Already up to date."))
-		return buf.String()
-	}
-	
-	buf.WriteString(fmt.Sprintf("From %s\n", cf.Apply(InfoStyle, remote)))
-	
-	if fastForward {
-		buf.WriteString(fmt.Sprintf("   %s..%s  %s\n",
-			cf.Hash("a1b2c3d"),
-			cf.Hash("e4f5g6h"),
-			cf.Branch(branch)))
-		buf.WriteString(cf.Apply(SuccessStyle, "Fast-forward"))
-	} else {
-		buf.WriteString(fmt.Sprintf("Merge made by the '%s' strategy.\n",
-			cf.Apply(InfoStyle, "recursive")))
-	}
-	
-	if commits > 0 {
-		plural := ""
-		if commits > 1 {
-			plural = "s"
-		}
-		buf.WriteString(fmt.Sprintf(" %d commit%s merged\n", commits, plural))
-	}
-	
 	return buf.String()
 }
 
@@ -135,30 +103,30 @@ func (cf *CommandFormatter) FormatCloneProgress(repo, progress string) string {
 
 func (cf *CommandFormatter) FormatCommitResult(hash, branch, message string, filesChanged, insertions, deletions int) string {
 	var buf strings.Builder
-	
+
 	buf.WriteString(fmt.Sprintf("[%s %s] %s\n",
 		cf.Branch(branch),
 		cf.Hash(hash),
 		message))
-	
+
 	if filesChanged > 0 {
 		parts := []string{
 			fmt.Sprintf("%d file%s changed", filesChanged, pluralS(filesChanged)),
 		}
-		
+
 		if insertions > 0 {
 			parts = append(parts, cf.Apply(DiffAddedStyle, fmt.Sprintf("%d insertion%s(+)", insertions, pluralS(insertions))))
 		}
-		
+
 		if deletions > 0 {
 			parts = append(parts, cf.Apply(DiffRemovedStyle, fmt.Sprintf("%d deletion%s(-)", deletions, pluralS(deletions))))
 		}
-		
+
 		buf.WriteString(" ")
 		buf.WriteString(strings.Join(parts, ", "))
 		buf.WriteString("\n")
 	}
-	
+
 	return buf.String()
 }
 
@@ -261,13 +229,13 @@ func (cf *CommandFormatter) FormatBytes(bytes int64) string {
 	if bytes < unit {
 		return fmt.Sprintf("%d B", bytes)
 	}
-	
+
 	div, exp := int64(unit), 0
 	for n := bytes / unit; n >= unit; n /= unit {
 		div *= unit
 		exp++
 	}
-	
+
 	return cf.Apply(InfoStyle, fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp]))
 }
 
@@ -284,7 +252,6 @@ func (cf *CommandFormatter) FormatDuration(d time.Duration) string {
 var defaultCommandFormatter = NewCommandFormatter(defaultFormatter)
 
 func FormatPushResult(remote string, updates map[string]RefUpdate, newBranch bool, upstreamSet bool, branch string) string { return defaultCommandFormatter.FormatPushResult(remote, updates, newBranch, upstreamSet, branch) }
-func FormatPullResult(remote, branch string, commits int, fastForward bool) string { return defaultCommandFormatter.FormatPullResult(remote, branch, commits, fastForward) }
 func FormatCloneProgress(repo, progress string) string { return defaultCommandFormatter.FormatCloneProgress(repo, progress) }
 func FormatCommitResult(hash, branch, message string, filesChanged, insertions, deletions int) string { return defaultCommandFormatter.FormatCommitResult(hash, branch, message, filesChanged, insertions, deletions) }
 func FormatResetResult(mode, target string, filesChanged int) string { return defaultCommandFormatter.FormatResetResult(mode, target, filesChanged) }

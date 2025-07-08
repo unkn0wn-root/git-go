@@ -42,7 +42,7 @@ func (br *BlameResult) String() string {
 	for _, line := range br.Lines {
 		shortHash := line.CommitHash[:shortHashLength]
 		buf.WriteString(fmt.Sprintf("%s (%s %s %s) %s\n",
-			display.Hash(shortHash),
+			display.Hash(shortHash, 8),
 			display.Emphasis(line.Author),
 			display.Secondary(line.AuthorTime.Format(timeFormat)),
 			display.Secondary(fmt.Sprintf("%d", line.LineNumber)),

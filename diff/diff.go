@@ -14,13 +14,6 @@ import (
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
-type DiffLine struct {
-	Type    LineType
-	Content string
-	OldLine int
-	NewLine int
-}
-
 type LineType int
 
 const (
@@ -42,6 +35,13 @@ func (t LineType) String() string {
 	}
 }
 
+type DiffLine struct {
+	Type    LineType
+	Content string
+	OldLine int
+	NewLine int
+}
+
 type FileDiff struct {
 	OldPath string
 	NewPath string
@@ -59,7 +59,7 @@ func (fd *FileDiff) String() string {
 			NewLine: line.NewLine,
 		}
 	}
-	
+
 	return display.FormatFileDiff(fd.OldPath, fd.NewPath, lines)
 }
 
