@@ -21,7 +21,7 @@ func TestPushOptions(t *testing.T) {
 		assert.False(t, opts.PushAll)
 		assert.False(t, opts.PushTags)
 		assert.False(t, opts.DryRun)
-		assert.Equal(t, 5*time.Minute, opts.Timeout)
+		assert.Equal(t, 2*time.Minute, opts.Timeout)
 	})
 }
 
