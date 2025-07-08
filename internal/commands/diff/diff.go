@@ -12,6 +12,7 @@ import (
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/utils"
 )
 
 type LineType int
@@ -87,7 +88,7 @@ func ShowWorkingTreeDiff(repo *repository.Repository, paths []string) error {
 	entries := idx.GetAll()
 
 	for path, entry := range entries {
-		if len(paths) > 0 && !containsPath(paths, path) {
+		if len(paths) > 0 && !utils.ContainsPath(paths, path) {
 			continue
 		}
 
@@ -132,7 +133,7 @@ func ShowStagedDiff(repo *repository.Repository, paths []string) error {
 	if headHash == "" {
 		entries := idx.GetAll()
 		for path := range entries {
-			if len(paths) > 0 && !containsPath(paths, path) {
+			if len(paths) > 0 && !utils.ContainsPath(paths, path) {
 				continue
 			}
 			fmt.Printf("%s\n", display.FormatNewFile(path))
@@ -167,7 +168,7 @@ func ShowStagedDiff(repo *repository.Repository, paths []string) error {
 
 	entries := idx.GetAll()
 	for path, entry := range entries {
-		if len(paths) > 0 && !containsPath(paths, path) {
+		if len(paths) > 0 && !utils.ContainsPath(paths, path) {
 			continue
 		}
 
@@ -237,7 +238,7 @@ func longestCommonSubsequence(a, b []string) [][]int {
 			if a[i-1] == b[j-1] {
 				lcs[i][j] = lcs[i-1][j-1] + 1
 			} else {
-				lcs[i][j] = max(lcs[i-1][j], lcs[i][j-1])
+				lcs[i][j] = utils.Max(lcs[i-1][j], lcs[i][j-1])
 			}
 		}
 	}
@@ -287,18 +288,3 @@ func generateDiffLines(oldLines, newLines []string, lcs [][]int) []DiffLine {
 	return result
 }
 
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
-func containsPath(paths []string, target string) bool {
-	for _, path := range paths {
-		if path == target {
-			return true
-		}
-	}
-	return false
-}
