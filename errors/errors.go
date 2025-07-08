@@ -53,6 +53,14 @@ type GitError struct {
 	Err  error
 }
 
+func NewGitError(op, path string, err error) *GitError {
+	return &GitError{
+		Op:   op,
+		Path: path,
+		Err:  err,
+	}
+}
+
 func (e *GitError) Error() string {
 	if e.Path == "" {
 		return fmt.Sprintf("git %s: %v", e.Op, e.Err)
@@ -64,10 +72,10 @@ func (e *GitError) Unwrap() error {
 	return e.Err
 }
 
-func NewGitError(op, path string, err error) *GitError {
-	return &GitError{
-		Op:   op,
-		Path: path,
+func NewObjectError(hash, objType string, err error) *ObjectError {
+	return &ObjectError{
+		Hash: hash,
+		Type: objType,
 		Err:  err,
 	}
 }
@@ -79,10 +87,9 @@ func (e *ObjectError) Unwrap() error {
 	return e.Err
 }
 
-func NewObjectError(hash, objType string, err error) *ObjectError {
-	return &ObjectError{
-		Hash: hash,
-		Type: objType,
+func NewIndexError(path string, err error) *IndexError {
+	return &IndexError{
+		Path: path,
 		Err:  err,
 	}
 }
@@ -95,9 +102,3 @@ func (e *IndexError) Unwrap() error {
 	return e.Err
 }
 
-func NewIndexError(path string, err error) *IndexError {
-	return &IndexError{
-		Path: path,
-		Err:  err,
-	}
-}
