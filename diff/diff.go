@@ -99,7 +99,7 @@ func ShowWorkingTreeDiff(repo *repository.Repository, paths []string) error {
 
 		obj, err := repo.LoadObject(entry.Hash)
 		if err != nil {
-			return errors.NewGitError("diff", path, fmt.Errorf("%s: %w", entry.Hash, err))
+			continue
 		}
 
 		blob, ok := obj.(*objects.Blob)
