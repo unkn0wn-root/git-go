@@ -174,6 +174,63 @@ go test ./...
 go test -cover ./...
 ```
 
+## Project Structure
+
+```
+git-go/
+├── cmd/                   # Command-line interface definitions
+│   ├── add.go             # Add command implementation
+│   ├── blame.go           # Blame command implementation
+│   ├── clone.go           # Clone command implementation
+│   ├── commit.go          # Commit command implementation
+│   ├── diff.go            # Diff command implementation
+│   ├── init.go            # Init command implementation
+│   ├── log.go             # Log command implementation
+│   ├── pull.go            # Pull command implementation
+│   ├── push.go            # Push command implementation
+│   ├── remote.go          # Remote command implementation
+│   ├── reset.go           # Reset command implementation
+│   ├── root.go            # Root command and CLI setup
+│   └── status.go          # Status command implementation
+├── internal/              # Internal packages (not exposed to external consumers)
+│   ├── commands/          # Command implementations
+│   │   ├── add/           # Add command logic and tests
+│   │   ├── blame/         # Blame command logic and tests
+│   │   ├── clone/         # Clone command logic and tests
+│   │   ├── commit/        # Commit command logic and tests
+│   │   ├── diff/          # Diff command logic and tests
+│   │   ├── log/           # Log command logic and tests
+│   │   ├── reset/         # Reset command logic and tests
+│   │   └── status/        # Status command logic and tests
+│   ├── core/              # Core Git functionality
+│   │   ├── discovery/     # Repository discovery utilities
+│   │   ├── gitignore/     # .gitignore file parsing and matching
+│   │   ├── hash/          # SHA-1 hashing utilities
+│   │   ├── index/         # Git index (staging area) operations
+│   │   ├── objects/       # Git object parsing and manipulation
+│   │   ├── pack/          # Git pack file handling
+│   │   └── repository/    # Repository initialization and management
+│   └── transport/         # Network transport layer
+│       ├── pull/          # Pull operation implementation
+│       ├── push/          # Push operation implementation
+│       ├── remote/        # Remote repository management
+│       └── ssh/           # SSH authentication and transport
+├── pkg/                   # Public packages (can be imported by external code)
+│   ├── display/           # Output formatting and display utilities
+│   │   ├── command.go     # Command output formatting
+│   │   ├── diff.go        # Diff output formatting
+│   │   ├── display.go     # General display utilities
+│   │   ├── log.go         # Log output formatting
+│   │   └── status.go      # Status output formatting
+│   └── errors/            # Error handling and custom error types
+├── main.go                # Application entry point
+├── go.mod                 # Go module definition
+├── go.sum                 # Go module checksums
+├── Makefile               # Build and development tasks
+├── LICENSE                # Project license
+└── README.md              # Project documentation
+```
+
 ## Compatibility
 
 git-go tries to maintain full compatibility with standard Git repositories:
