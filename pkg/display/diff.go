@@ -20,6 +20,14 @@ type DiffLine struct {
 	NewLine int
 }
 
+type DiffHunk struct {
+	OldStart int
+	OldCount int
+	NewStart int
+	NewCount int
+	Lines    []DiffLine
+}
+
 type DiffFormatter struct {
 	*Formatter
 }
@@ -68,11 +76,48 @@ func (df *DiffFormatter) FormatFileDiff(oldPath, newPath string, lines []DiffLin
 	return buf.String()
 }
 
+func (df *DiffFormatter) FormatHunk(hunk DiffHunk) string {
+	var buf strings.Builder
+	// add header
+	buf.WriteString(df.FormatHunkHeader(hunk.OldStart, hunk.OldCount, hunk.NewStart, hunk.NewCount))
+	buf.WriteString("\n")
+
+	// add lines
+	for _, line := range hunk.Lines {
+		buf.WriteString(df.FormatDiffLine(line))
+		buf.WriteString("\n")
+	}
+
+	return buf.String()
+}
+
+func (df *DiffFormatter) FormatHunkSeparator() string {
+	separator := strings.Repeat("─", 60)
+	return df.Apply(DiffContextStyle, separator)
+}
+
+func (df *DiffFormatter) FormatFileHunks(oldPath, newPath string, hunks []DiffHunk) string {
+	var buf strings.Builder
+	buf.WriteString(df.FormatDiffHeader(oldPath, newPath))
+
+	for i, hunk := range hunks {
+		if i > 0 {
+			buf.WriteString(df.FormatHunkSeparator())
+			buf.WriteString("\n")
+		}
+		buf.WriteString(df.FormatHunk(hunk))
+	}
+
+	return buf.String()
+}
+
 func (df *DiffFormatter) FormatNewFile(path string) string { return df.Apply(AddedStyle, fmt.Sprintf("new file: %s", path)) }
 func (df *DiffFormatter) FormatDeletedFile(path string) string { return df.Apply(DeletedStyle, fmt.Sprintf("deleted file: %s", path)) }
 func (df *DiffFormatter) FormatModifiedFile(path string) string { return df.Apply(ModifiedStyle, fmt.Sprintf("modified: %s", path)) }
 func (df *DiffFormatter) FormatRenamedFile(oldPath, newPath string) string { return df.Apply(RenamedStyle, fmt.Sprintf("renamed: %s -> %s", oldPath, newPath)) }
-func (df *DiffFormatter) FormatHunkHeader(oldStart, oldCount, newStart, newCount int) string { return df.Apply(DiffHeaderStyle, fmt.Sprintf("@@ -%d,%d +%d,%d @@", oldStart, oldCount, newStart, newCount)) }
+func (df *DiffFormatter) FormatHunkHeader(oldStart, oldCount, newStart, newCount int) string {
+	return df.Apply(DiffHeaderStyle, fmt.Sprintf("@@ -%d,%d +%d,%d @@", oldStart, oldCount, newStart, newCount))
+}
 func (df *DiffFormatter) FormatBinaryDiff(path string) string { return df.Apply(InfoStyle, fmt.Sprintf("Binary file %s differs", path)) }
 func (df *DiffFormatter) FormatNoNewlineWarning() string { return df.Apply(WarningStyle, "\\ No newline at end of file") }
 
@@ -141,6 +186,9 @@ var defaultDiffFormatter = NewDiffFormatter(defaultFormatter)
 func FormatDiffLine(line DiffLine) string { return defaultDiffFormatter.FormatDiffLine(line) }
 func FormatDiffHeader(oldPath, newPath string) string { return defaultDiffFormatter.FormatDiffHeader(oldPath, newPath) }
 func FormatFileDiff(oldPath, newPath string, lines []DiffLine) string { return defaultDiffFormatter.FormatFileDiff(oldPath, newPath, lines) }
+func FormatHunk(hunk DiffHunk) string { return defaultDiffFormatter.FormatHunk(hunk) }
+func FormatHunkSeparator() string { return defaultDiffFormatter.FormatHunkSeparator() }
+func FormatFileHunks(oldPath, newPath string, hunks []DiffHunk) string { return defaultDiffFormatter.FormatFileHunks(oldPath, newPath, hunks) }
 func FormatNewFile(path string) string { return defaultDiffFormatter.FormatNewFile(path) }
 func FormatDeletedFile(path string) string { return defaultDiffFormatter.FormatDeletedFile(path) }
 func FormatModifiedFile(path string) string { return defaultDiffFormatter.FormatModifiedFile(path) }
