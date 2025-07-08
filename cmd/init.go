@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/repository"
 )
 
@@ -35,9 +36,9 @@ var initCmd = &cobra.Command{
 		}
 
 		if workDir == "." {
-			fmt.Println("Initialized empty Git repository in .git/")
+			fmt.Println(display.FormatInitResult(".", false))
 		} else {
-			fmt.Printf("Initialized empty Git repository in %s/.git/\n", workDir)
+			fmt.Println(display.FormatInitResult(workDir, false))
 		}
 
 		return nil

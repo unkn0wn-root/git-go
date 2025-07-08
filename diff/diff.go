@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/errors"
 	"github.com/unkn0wn-root/git-go/index"
 	"github.com/unkn0wn-root/git-go/objects"
@@ -49,16 +49,18 @@ type FileDiff struct {
 }
 
 func (fd *FileDiff) String() string {
-	var buf strings.Builder
-
-	buf.WriteString(fmt.Sprintf("--- a/%s\n", fd.OldPath))
-	buf.WriteString(fmt.Sprintf("+++ b/%s\n", fd.NewPath))
-
-	for _, line := range fd.Lines {
-		buf.WriteString(fmt.Sprintf("%s%s\n", line.Type.String(), line.Content))
+	// Convert to display format for colored output
+	lines := make([]display.DiffLine, len(fd.Lines))
+	for i, line := range fd.Lines {
+		lines[i] = display.DiffLine{
+			Type:    display.DiffLineType(line.Type),
+			Content: line.Content,
+			OldLine: line.OldLine,
+			NewLine: line.NewLine,
+		}
 	}
-
-	return buf.String()
+	
+	return display.FormatFileDiff(fd.OldPath, fd.NewPath, lines)
 }
 
 func ComputeFileDiff(oldContent, newContent []byte, oldPath, newPath string) *FileDiff {
@@ -109,7 +111,7 @@ func ShowWorkingTreeDiff(repo *repository.Repository, paths []string) error {
 
 		if !bytes.Equal(indexContent, workingContent) {
 			fileDiff := ComputeFileDiff(indexContent, workingContent, path, path)
-			fmt.Printf("diff --git a/%s b/%s\n", path, path)
+			fmt.Printf("%s\n", display.FormatDiffHeader(path, path))
 			fmt.Print(fileDiff.String())
 		}
 	}
@@ -134,7 +136,7 @@ func ShowStagedDiff(repo *repository.Repository, paths []string) error {
 			if len(paths) > 0 && !containsPath(paths, path) {
 				continue
 			}
-			fmt.Printf("new file: %s\n", path)
+			fmt.Printf("%s\n", display.FormatNewFile(path))
 		}
 		return nil
 	}
@@ -173,7 +175,7 @@ func ShowStagedDiff(repo *repository.Repository, paths []string) error {
 		headHash, existsInHead := headFiles[path]
 
 		if !existsInHead {
-			fmt.Printf("new file: %s\n", path)
+			fmt.Printf("%s\n", display.FormatNewFile(path))
 			continue
 		}
 
@@ -202,7 +204,7 @@ func ShowStagedDiff(repo *repository.Repository, paths []string) error {
 		}
 
 		fileDiff := ComputeFileDiff(headBlob.Content(), indexBlob.Content(), path, path)
-		fmt.Printf("diff --git a/%s b/%s\n", path, path)
+		fmt.Printf("%s\n", display.FormatDiffHeader(path, path))
 		fmt.Print(fileDiff.String())
 	}
 

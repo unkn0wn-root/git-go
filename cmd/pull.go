@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/pull"
 	"github.com/unkn0wn-root/git-go/repository"
 )
@@ -72,7 +73,7 @@ In its default mode, git pull is shorthand for git fetch followed by git merge F
 		puller := pull.NewPuller(repo)
 		ctx := context.Background()
 
-		fmt.Printf("Pulling from %s...\n", options.Remote)
+		fmt.Printf("%s Pulling from %s...\n", display.Info("⬇"), display.Emphasis(options.Remote))
 
 		result, err := puller.Pull(ctx, options)
 		if err != nil {
@@ -86,49 +87,49 @@ In its default mode, git pull is shorthand for git fetch followed by git merge F
 
 func printPullResult(result *pull.PullResult) {
 	if result.OldCommit == result.NewCommit {
-		fmt.Println("Already up to date.")
+		fmt.Println(display.Success("Already up to date."))
 		return
 	}
 
 	if result.FastForward {
-		fmt.Printf("Fast-forward\n")
+		fmt.Printf("%s\n", display.Success("Fast-forward"))
 		if result.OldCommit != "" {
-			fmt.Printf(" %s..%s\n", result.OldCommit[:7], result.NewCommit[:7])
+			fmt.Printf(" %s..%s\n", display.Hash(result.OldCommit[:7]), display.Hash(result.NewCommit[:7]))
 		} else {
-			fmt.Printf(" * [new branch] -> %s\n", result.NewCommit[:7])
+			fmt.Printf(" %s [new branch] -> %s\n", display.Success("*"), display.Hash(result.NewCommit[:7]))
 		}
 	} else if result.MergeCommit != "" {
-		fmt.Printf("Merge made by the 'recursive' strategy.\n")
-		fmt.Printf(" %s\n", result.MergeCommit[:7])
+		fmt.Printf("%s\n", display.Success("Merge made by the 'recursive' strategy."))
+		fmt.Printf(" %s\n", display.Hash(result.MergeCommit[:7]))
 	}
 
 	if len(result.UpdatedFiles) > 0 {
-		fmt.Printf(" %d file(s) changed", len(result.UpdatedFiles))
+		fmt.Printf(" %s file(s) changed", display.Emphasis(fmt.Sprintf("%d", len(result.UpdatedFiles))))
 		if len(result.AddedFiles) > 0 {
-			fmt.Printf(", %d insertion(s)", len(result.AddedFiles))
+			fmt.Printf(", %s insertion(s)", display.Success(fmt.Sprintf("%d", len(result.AddedFiles))))
 		}
 		if len(result.DeletedFiles) > 0 {
-			fmt.Printf(", %d deletion(s)", len(result.DeletedFiles))
+			fmt.Printf(", %s deletion(s)", display.Error(fmt.Sprintf("%d", len(result.DeletedFiles))))
 		}
 		fmt.Println()
 	}
 
 	if len(result.ConflictFiles) > 0 {
-		fmt.Printf("CONFLICT: Merge conflicts in %d file(s):\n", len(result.ConflictFiles))
+		fmt.Printf("%s Merge conflicts in %d file(s):\n", display.Error("CONFLICT:"), len(result.ConflictFiles))
 		for _, file := range result.ConflictFiles {
-			fmt.Printf("  %s\n", file)
+			fmt.Printf("  %s\n", display.Path(file))
 		}
-		fmt.Println("Automatic merge failed; fix conflicts and then commit the result.")
+		fmt.Println(display.Warning("Automatic merge failed; fix conflicts and then commit the result."))
 	}
 
 	if result.CommitsBehind > 0 {
-		fmt.Printf("Your branch is behind '%s' by %d commit(s).\n",
-			result.NewCommit[:7], result.CommitsBehind)
+		fmt.Printf("%s Your branch is behind %s by %s commit(s).\n",
+			display.Info("ℹ"), display.Hash(result.NewCommit[:7]), display.Emphasis(fmt.Sprintf("%d", result.CommitsBehind)))
 	}
 
 	if result.CommitsAhead > 0 {
-		fmt.Printf("Your branch is ahead of '%s' by %d commit(s).\n",
-			result.OldCommit[:7], result.CommitsAhead)
+		fmt.Printf("%s Your branch is ahead of %s by %s commit(s).\n",
+			display.Info("ℹ"), display.Hash(result.OldCommit[:7]), display.Emphasis(fmt.Sprintf("%d", result.CommitsAhead)))
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/errors"
 	"github.com/unkn0wn-root/git-go/hash"
 	"github.com/unkn0wn-root/git-go/objects"
@@ -28,21 +29,21 @@ func (le *LogEntry) String(options LogOptions) string {
 	if options.Oneline {
 		shortHash := hash.ShortHash(le.Hash, 7)
 		messageLine := strings.Split(le.Message, "\n")[0]
-		return fmt.Sprintf("%s %s", shortHash, messageLine)
+		return fmt.Sprintf("%s %s", display.Hash(shortHash), messageLine)
 	}
 
 	var buf strings.Builder
-	buf.WriteString(fmt.Sprintf("commit %s\n", le.Hash))
+	buf.WriteString(fmt.Sprintf("%s %s\n", display.Emphasis("commit"), display.Hash(le.Hash)))
 
 	if le.Author.Name != le.Committer.Name || le.Author.Email != le.Committer.Email ||
 		le.Author.When.Unix() != le.Committer.When.Unix() {
-		buf.WriteString(fmt.Sprintf("Author:     %s\n", le.Author.String()))
-		buf.WriteString(fmt.Sprintf("AuthorDate: %s\n", le.Author.When.Format("Mon Jan 2 15:04:05 2006 -0700")))
-		buf.WriteString(fmt.Sprintf("Commit:     %s\n", le.Committer.String()))
-		buf.WriteString(fmt.Sprintf("CommitDate: %s\n", le.Committer.When.Format("Mon Jan 2 15:04:05 2006 -0700")))
+		buf.WriteString(fmt.Sprintf("%s     %s\n", display.Info("Author:"), le.Author.String()))
+		buf.WriteString(fmt.Sprintf("%s %s\n", display.Info("AuthorDate:"), display.Secondary(le.Author.When.Format("Mon Jan 2 15:04:05 2006 -0700"))))
+		buf.WriteString(fmt.Sprintf("%s     %s\n", display.Info("Commit:"), le.Committer.String()))
+		buf.WriteString(fmt.Sprintf("%s %s\n", display.Info("CommitDate:"), display.Secondary(le.Committer.When.Format("Mon Jan 2 15:04:05 2006 -0700"))))
 	} else {
-		buf.WriteString(fmt.Sprintf("Author: %s\n", le.Author.String()))
-		buf.WriteString(fmt.Sprintf("Date:   %s\n", le.Author.When.Format("Mon Jan 2 15:04:05 2006 -0700")))
+		buf.WriteString(fmt.Sprintf("%s %s\n", display.Info("Author:"), le.Author.String()))
+		buf.WriteString(fmt.Sprintf("%s   %s\n", display.Info("Date:"), display.Secondary(le.Author.When.Format("Mon Jan 2 15:04:05 2006 -0700"))))
 	}
 
 	buf.WriteString("\n")
@@ -133,7 +134,7 @@ func ShowLog(repo *repository.Repository, options LogOptions) error {
 	}
 
 	if len(entries) == 0 {
-		fmt.Println("No commits yet")
+		fmt.Println(display.Hint("No commits yet"))
 		return nil
 	}
 

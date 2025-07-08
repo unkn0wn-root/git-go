@@ -5,6 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/discovery"
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/repository"
 	"github.com/unkn0wn-root/git-go/reset"
 )
@@ -77,7 +78,7 @@ If no commit is specified, defaults to HEAD.`,
 		}
 
 		if len(paths) == 0 {
-			fmt.Printf("HEAD is now at %s\n", target)
+			fmt.Printf("%s HEAD is now at %s\n", display.Success("✓"), display.Hash(target))
 		}
 
 		return nil

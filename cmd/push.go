@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/push"
 	"github.com/unkn0wn-root/git-go/repository"
 )
@@ -66,10 +67,10 @@ When no remote is configured, the command defaults to 'origin'.`,
 		ctx := context.Background()
 
 		if pushDryRun {
-			fmt.Println("This is a dry run. No changes will be made to the remote repository.")
+			fmt.Println(display.Info("This is a dry run. No changes will be made to the remote repository."))
 		}
 
-		fmt.Printf("Pushing to %s...\n", options.Remote)
+		fmt.Printf("%s\n", display.Info(fmt.Sprintf("Pushing to %s...", options.Remote)))
 
 		var result *push.PushResult
 
@@ -92,63 +93,52 @@ When no remote is configured, the command defaults to 'origin'.`,
 
 func printPushResult(result *push.PushResult) {
 	if pushDryRun {
-		fmt.Println("Dry run completed successfully.")
+		fmt.Println(display.Success("Dry run completed successfully."))
 		return
 	}
 
 	if len(result.UpdatedRefs) == 0 && len(result.RejectedRefs) == 0 {
-		fmt.Println("Everything up-to-date")
+		fmt.Println(display.Info("Everything up-to-date"))
 		return
 	}
 
-	fmt.Printf("To %s\n", result.Remote)
-
+	// Convert push result to display format
+	updates := make(map[string]display.RefUpdate)
 	for refName, update := range result.UpdatedRefs {
-		switch update.Status {
-		case push.RefUpdateUpToDate:
-			fmt.Printf("   = [up to date]      %s\n", extractBranchName(refName))
-		case push.RefUpdateFastForward:
-			fmt.Printf("   %s..%s  %s\n",
-				update.OldHash[:7], update.NewHash[:7], extractBranchName(refName))
-		case push.RefUpdateForced:
-			fmt.Printf(" + %s...%s %s (forced update)\n",
-				update.OldHash[:7], update.NewHash[:7], extractBranchName(refName))
-		case push.RefUpdateOK:
-			if result.NewBranch {
-				fmt.Printf(" * [new branch]      %s -> %s\n",
-					result.Branch, extractBranchName(refName))
-			} else {
-				fmt.Printf("   %s..%s  %s\n",
-					update.OldHash[:7], update.NewHash[:7], extractBranchName(refName))
-			}
+		updates[refName] = display.RefUpdate{
+			Status:  display.RefUpdateStatus(update.Status),
+			OldHash: update.OldHash,
+			NewHash: update.NewHash,
 		}
 	}
 
 	for refName, reason := range result.RejectedRefs {
-		fmt.Printf(" ! [rejected]        %s (%s)\n",
-			extractBranchName(refName), reason)
+		updates[refName] = display.RefUpdate{
+			Status: display.RefUpdateRejected,
+			Reason: reason,
+		}
 	}
 
-	if result.UpstreamSet {
-		fmt.Printf("Branch '%s' set up to track remote branch '%s' from '%s'.\n",
-			result.Branch, result.Branch, result.Remote)
-	}
+	fmt.Print(display.FormatPushResult(result.Remote, updates, result.NewBranch, result.UpstreamSet, result.Branch))
 
 	if result.PushedObjects > 0 {
 		fmt.Printf("Pushed %d object(s)", result.PushedObjects)
 		if result.PushedSize > 0 {
-			fmt.Printf(" (%s)", formatBytes(result.PushedSize))
+			fmt.Printf(" (%s)", display.FormatBytes(result.PushedSize))
 		}
 		fmt.Println()
 	}
 
 	if len(result.RejectedRefs) > 0 {
 		fmt.Println()
-		fmt.Println("hint: Updates were rejected because the remote contains work that you do")
-		fmt.Println("hint: not have locally. This is usually caused by another repository pushing")
-		fmt.Println("hint: to the same ref. You may want to first integrate the remote changes")
-		fmt.Println("hint: (e.g., 'git pull ...') before pushing again.")
-		fmt.Println("hint: See the 'Note about fast-forwards' in 'git push --help' for details.")
+		hints := []string{
+			"Updates were rejected because the remote contains work that you do",
+			"not have locally. This is usually caused by another repository pushing",
+			"to the same ref. You may want to first integrate the remote changes",
+			"(e.g., 'git pull ...') before pushing again.",
+			"See the 'Note about fast-forwards' in 'git push --help' for details.",
+		}
+		fmt.Print(display.FormatHintMessage(hints))
 	}
 }
 
@@ -168,20 +158,6 @@ func extractBranchName(refName string) string {
 	return refName
 }
 
-func formatBytes(bytes int64) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div *= unit
-		exp++
-	}
-
-	return fmt.Sprintf("%.1f %cB", float64(bytes)/float64(div), "KMGTPE"[exp])
-}
 
 func init() {
 	pushCmd.Flags().StringVarP(&pushRemote, "remote", "r", "", "remote repository")
