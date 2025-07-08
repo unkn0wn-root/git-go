@@ -8,6 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/clone"
+	"github.com/unkn0wn-root/git-go/display"
 )
 
 var (
@@ -57,7 +58,7 @@ that is forked from the cloned repository's currently active branch.`,
 		ctx := context.Background()
 
 		if options.Progress {
-			fmt.Printf("Cloning into '%s'...\n", options.Directory)
+			fmt.Printf("%s Cloning into %s...\n", display.Info("⬇"), display.Path(options.Directory))
 		}
 
 		result, err := cloner.Clone(ctx, options)
@@ -76,7 +77,7 @@ func printCloneResult(result *clone.CloneResult, options clone.CloneOptions) {
 	}
 
 	if result.CheckedOut {
-		fmt.Printf("Switched to branch '%s'\n", result.DefaultBranch)
+		fmt.Printf("%s Switched to branch %s\n", display.Success("✓"), display.Branch(result.DefaultBranch))
 	}
 
 	if len(result.FetchedRefs) > 0 {
@@ -87,13 +88,13 @@ func printCloneResult(result *clone.CloneResult, options clone.CloneOptions) {
 			}
 		}
 		if branchCount > 1 {
-			fmt.Printf("Branch '%s' set up to track remote branch '%s' from '%s'.\n",
-				result.DefaultBranch, result.DefaultBranch, result.RemoteName)
+			fmt.Printf("%s Branch %s set up to track remote branch %s from %s.\n",
+				display.Info("ℹ"), display.Branch(result.DefaultBranch), display.Branch(result.DefaultBranch), display.Emphasis(result.RemoteName))
 		}
 	}
 
 	if result.ObjectCount > 0 {
-		fmt.Printf("Received %d objects\n", result.ObjectCount)
+		fmt.Printf("%s Received %s objects\n", display.Success("✓"), display.Emphasis(fmt.Sprintf("%d", result.ObjectCount)))
 	}
 }
 

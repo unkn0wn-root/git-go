@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/unkn0wn-root/git-go/display"
 )
 
 var rootCmd = &cobra.Command{
@@ -17,7 +18,7 @@ It supports the core Git functionality including init, add, commit, diff, blame 
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Fprintf(os.Stderr, "%s %v\n", display.Error("Error:"), err)
 		os.Exit(1)
 	}
 }

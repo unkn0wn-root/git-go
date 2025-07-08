@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/errors"
 	"github.com/unkn0wn-root/git-go/objects"
 	"github.com/unkn0wn-root/git-go/repository"
@@ -39,11 +40,12 @@ func (br *BlameResult) String() string {
 	var buf strings.Builder
 
 	for _, line := range br.Lines {
-		buf.WriteString(fmt.Sprintf("%s (%s %s %d) %s\n",
-			line.CommitHash[:shortHashLength],
-			line.Author,
-			line.AuthorTime.Format(timeFormat),
-			line.LineNumber,
+		shortHash := line.CommitHash[:shortHashLength]
+		buf.WriteString(fmt.Sprintf("%s (%s %s %s) %s\n",
+			display.Hash(shortHash),
+			display.Emphasis(line.Author),
+			display.Secondary(line.AuthorTime.Format(timeFormat)),
+			display.Secondary(fmt.Sprintf("%d", line.LineNumber)),
 			line.Content,
 		))
 	}

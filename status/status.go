@@ -5,8 +5,8 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/errors"
 	"github.com/unkn0wn-root/git-go/hash"
 	"github.com/unkn0wn-root/git-go/index"
@@ -42,6 +42,11 @@ func (s FileStatus) String() string {
 	}
 }
 
+// DisplayStatus returns the formatted status with colors
+func (s FileStatus) DisplayStatus() string {
+	return display.FormatFileStatus(display.FileStatus(s))
+}
+
 type StatusEntry struct {
 	Path        string
 	IndexStatus FileStatus
@@ -56,66 +61,17 @@ type StatusResult struct {
 }
 
 func (sr *StatusResult) String() string {
-	var buf strings.Builder
-
-	if sr.IsInitial {
-		buf.WriteString("On branch ")
-		buf.WriteString(sr.Branch)
-		buf.WriteString("\n\nNo commits yet\n\n")
-	} else {
-		buf.WriteString("On branch ")
-		buf.WriteString(sr.Branch)
-		buf.WriteString("\n\n")
-	}
-
-	staged := make([]StatusEntry, 0)
-	unstaged := make([]StatusEntry, 0)
-	untracked := make([]StatusEntry, 0)
-
-	for _, entry := range sr.Entries {
-		if entry.IndexStatus != StatusUnmodified {
-			staged = append(staged, entry)
-		}
-		if entry.WorkStatus == StatusUntracked {
-			untracked = append(untracked, entry)
-		} else if entry.WorkStatus != StatusUnmodified {
-			unstaged = append(unstaged, entry)
+	// Convert to display format for colored output
+	entries := make([]display.StatusEntry, len(sr.Entries))
+	for i, entry := range sr.Entries {
+		entries[i] = display.StatusEntry{
+			Path:        entry.Path,
+			IndexStatus: display.FileStatus(entry.IndexStatus),
+			WorkStatus:  display.FileStatus(entry.WorkStatus),
 		}
 	}
-
-	if len(staged) > 0 {
-		buf.WriteString("Changes to be committed:\n")
-		buf.WriteString("  (use \"git reset HEAD <file>...\" to unstage)\n\n")
-		for _, entry := range staged {
-			buf.WriteString(fmt.Sprintf("\t%s%s\n", entry.IndexStatus.String(), entry.Path))
-		}
-		buf.WriteString("\n")
-	}
-
-	if len(unstaged) > 0 {
-		buf.WriteString("Changes not staged for commit:\n")
-		buf.WriteString("  (use \"git add <file>...\" to update what will be committed)\n")
-		buf.WriteString("  (use \"git checkout -- <file>...\" to discard changes in working directory)\n\n")
-		for _, entry := range unstaged {
-			buf.WriteString(fmt.Sprintf("\t%s%s\n", entry.WorkStatus.String(), entry.Path))
-		}
-		buf.WriteString("\n")
-	}
-
-	if len(untracked) > 0 {
-		buf.WriteString("Untracked files:\n")
-		buf.WriteString("  (use \"git add <file>...\" to include in what will be committed)\n\n")
-		for _, entry := range untracked {
-			buf.WriteString(fmt.Sprintf("\t%s\n", entry.Path))
-		}
-		buf.WriteString("\n")
-	}
-
-	if len(staged) == 0 && len(unstaged) == 0 && len(untracked) == 0 {
-		buf.WriteString("nothing to commit, working tree clean\n")
-	}
-
-	return buf.String()
+	
+	return display.FormatStatusResult(sr.Branch, entries, sr.IsInitial)
 }
 
 func GetStatus(repo *repository.Repository) (*StatusResult, error) {

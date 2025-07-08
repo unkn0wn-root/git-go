@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
+	"github.com/unkn0wn-root/git-go/display"
 	"github.com/unkn0wn-root/git-go/remote"
 	"github.com/unkn0wn-root/git-go/repository"
 )
@@ -46,7 +47,10 @@ var remoteAddCmd = &cobra.Command{
 			return fmt.Errorf("failed to add remote: %w", err)
 		}
 
-		fmt.Printf("Added remote '%s' with URL '%s'\n", name, url)
+		fmt.Printf("%s Added remote %s with URL %s\n", 
+			display.Success("✓"), 
+			display.Emphasis(name), 
+			display.Path(url))
 		return nil
 	},
 }
@@ -78,7 +82,9 @@ var remoteRemoveCmd = &cobra.Command{
 			return fmt.Errorf("failed to remove remote: %w", err)
 		}
 
-		fmt.Printf("Removed remote '%s'\n", name)
+		fmt.Printf("%s Removed remote %s\n", 
+			display.Success("✓"), 
+			display.Emphasis(name))
 		return nil
 	},
 }
@@ -105,16 +111,25 @@ var remoteListCmd = &cobra.Command{
 
 		remotes := rc.ListRemotes()
 		if len(remotes) == 0 {
-			fmt.Println("No remotes configured")
+			fmt.Println(display.Hint("No remotes configured"))
 			return nil
 		}
 
 		for _, r := range remotes {
-			fmt.Printf("%s\t%s (fetch)\n", r.Name, r.FetchURL)
+			fmt.Printf("%s\t%s %s\n", 
+				display.Emphasis(r.Name), 
+				display.Path(r.FetchURL), 
+				display.Secondary("(fetch)"))
 			if r.PushURL != r.FetchURL {
-				fmt.Printf("%s\t%s (push)\n", r.Name, r.PushURL)
+				fmt.Printf("%s\t%s %s\n", 
+					display.Emphasis(r.Name), 
+					display.Path(r.PushURL), 
+					display.Secondary("(push)"))
 			} else {
-				fmt.Printf("%s\t%s (push)\n", r.Name, r.PushURL)
+				fmt.Printf("%s\t%s %s\n", 
+					display.Emphasis(r.Name), 
+					display.Path(r.PushURL), 
+					display.Secondary("(push)"))
 			}
 		}
 
@@ -150,9 +165,9 @@ var remoteShowCmd = &cobra.Command{
 			return fmt.Errorf("failed to get remote: %w", err)
 		}
 
-		fmt.Printf("* remote %s\n", r.Name)
-		fmt.Printf("  Fetch URL: %s\n", r.FetchURL)
-		fmt.Printf("  Push  URL: %s\n", r.PushURL)
+		fmt.Printf("%s remote %s\n", display.Success("*"), display.Emphasis(r.Name))
+		fmt.Printf("  %s %s\n", display.Info("Fetch URL:"), display.Path(r.FetchURL))
+		fmt.Printf("  %s %s\n", display.Info("Push  URL:"), display.Path(r.PushURL))
 
 		return nil
 	},
