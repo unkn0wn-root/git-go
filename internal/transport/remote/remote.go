@@ -58,18 +58,6 @@ const (
 	ProtocolGit
 )
 
-type Remote struct {
-	Name     string
-	URL      string
-	FetchURL string
-	PushURL  string
-}
-
-type RemoteConfig struct {
-	remotes map[string]*Remote
-	gitDir  string
-}
-
 type Transport interface {
 	Connect(ctx context.Context, url string) error
 	Disconnect() error
@@ -84,23 +72,6 @@ type PackReader interface {
 	Close() error
 }
 
-type HTTPTransport struct {
-	client   *http.Client
-	baseURL  *url.URL
-	username string
-	password string
-}
-
-type SSHTransport struct {
-	sshClient *ssh.SSHClient
-	conn      io.ReadWriteCloser
-	host      string
-	port      string
-	user      string
-	repo      string
-	key       string
-}
-
 type AuthConfig struct {
 	Username string
 	Password string
@@ -112,6 +83,18 @@ type RefUpdate struct {
 	RefName string
 	OldHash string
 	NewHash string
+}
+
+type Remote struct {
+	Name     string
+	URL      string
+	FetchURL string
+	PushURL  string
+}
+
+type RemoteConfig struct {
+	remotes map[string]*Remote
+	gitDir  string
 }
 
 func NewRemoteConfig(gitDir string) *RemoteConfig {
@@ -267,6 +250,13 @@ func CreateTransport(remoteURL string, auth *AuthConfig) (Transport, error) {
 	}
 }
 
+type HTTPTransport struct {
+	client   *http.Client
+	baseURL  *url.URL
+	username string
+	password string
+}
+
 func NewHTTPTransport(remoteURL string, auth *AuthConfig) (*HTTPTransport, error) {
 	parsedURL, err := url.Parse(remoteURL)
 	if err != nil {
@@ -299,31 +289,6 @@ func NewHTTPTransport(remoteURL string, auth *AuthConfig) (*HTTPTransport, error
 			transport.username = auth.Username
 			transport.password = auth.Password
 		}
-	}
-
-	return transport, nil
-}
-
-func NewSSHTransport(remoteURL string, auth *AuthConfig) (*SSHTransport, error) {
-	user, host, port, repo, err := ssh.ParseGitSSHURL(remoteURL)
-	if err != nil {
-		return nil, fmt.Errorf("invalid SSH URL format: %w", err)
-	}
-
-	keyPath := ""
-	if auth != nil && auth.SSHKey != "" {
-		keyPath = auth.SSHKey
-	}
-
-	sshClient := ssh.NewSSHClient(host, port, user, keyPath)
-
-	transport := &SSHTransport{
-		sshClient: sshClient,
-		host:      host,
-		port:      port,
-		user:      user,
-		repo:      repo,
-		key:       keyPath,
 	}
 
 	return transport, nil
@@ -447,6 +412,41 @@ func (t *HTTPTransport) SendPack(ctx context.Context, refs map[string]RefUpdate,
 
 func (t *HTTPTransport) Close() error {
 	return nil
+}
+
+type SSHTransport struct {
+	sshClient *ssh.SSHClient
+	conn      io.ReadWriteCloser
+	host      string
+	port      string
+	user      string
+	repo      string
+	key       string
+}
+
+func NewSSHTransport(remoteURL string, auth *AuthConfig) (*SSHTransport, error) {
+	user, host, port, repo, err := ssh.ParseGitSSHURL(remoteURL)
+	if err != nil {
+		return nil, fmt.Errorf("invalid SSH URL format: %w", err)
+	}
+
+	keyPath := ""
+	if auth != nil && auth.SSHKey != "" {
+		keyPath = auth.SSHKey
+	}
+
+	sshClient := ssh.NewSSHClient(host, port, user, keyPath)
+
+	transport := &SSHTransport{
+		sshClient: sshClient,
+		host:      host,
+		port:      port,
+		user:      user,
+		repo:      repo,
+		key:       keyPath,
+	}
+
+	return transport, nil
 }
 
 func (t *SSHTransport) Connect(ctx context.Context, url string) error {

@@ -142,192 +142,6 @@ func (p *PackProcessor) extractPackFromPacketLine(data []byte) ([]byte, error) {
 	return parser.ExtractPackData()
 }
 
-type GitProtocolParser struct {
-	data   []byte
-	offset int
-}
-
-func (g *GitProtocolParser) ExtractPackData() ([]byte, error) {
-	var packData []byte
-
-	for g.offset < len(g.data) {
-		packet, err := g.readPacket()
-		if err != nil {
-			return nil, fmt.Errorf("failed to read packet: %w", err)
-		}
-
-		if packet == nil {
-			// flush packet (0000)
-			continue
-		}
-
-		switch {
-		case g.isNAKPacket(packet):
-			// NAK response from server - negotiation phase
-			continue
-
-		case g.isACKPacket(packet):
-			// ACK response from server - negotiation phase
-			continue
-
-		case g.isPackDataStart(packet):
-			packData = append(packData, packet...)
-
-			remaining, err := g.readRemainingPackData()
-			if err != nil {
-				return nil, fmt.Errorf("failed to read remaining pack data: %w", err)
-			}
-			packData = append(packData, remaining...)
-			return packData, nil
-
-		case g.isSidebandPacket(packet):
-			// sideband packet - extract pack data from channel 1
-			sidebandData, err := g.extractSidebandPackData(packet)
-			if err != nil {
-				return nil, fmt.Errorf("failed to extract sideband data: %w", err)
-			}
-			if sidebandData != nil {
-				packData = append(packData, sidebandData...)
-			}
-
-		default:
-			// unknown packet type, might be pack data without sideband
-			if len(packet) > 0 {
-				packData = append(packData, packet...)
-			}
-		}
-	}
-
-	if len(packData) == 0 {
-		return nil, fmt.Errorf("no pack data found in protocol response")
-	}
-
-	return packData, nil
-}
-
-func (g *GitProtocolParser) readPacket() ([]byte, error) {
-	if g.offset+4 > len(g.data) {
-		return nil, fmt.Errorf("insufficient data for packet length")
-	}
-
-	lengthStr := string(g.data[g.offset : g.offset+4])
-	g.offset += 4
-
-	if lengthStr == "0000" {
-		return nil, nil // Flush packet
-	}
-
-	var length int
-	n, err := fmt.Sscanf(lengthStr, "%04x", &length)
-	if err != nil || n != 1 {
-		return nil, fmt.Errorf("invalid packet length: %s", lengthStr)
-	}
-
-	if length < 4 {
-		return nil, fmt.Errorf("invalid packet length: %d", length)
-	}
-
-	dataLength := length - 4
-	if g.offset+dataLength > len(g.data) {
-		return nil, fmt.Errorf("packet data extends beyond available data")
-	}
-
-	packet := g.data[g.offset : g.offset+dataLength]
-	g.offset += dataLength
-
-	return packet, nil
-}
-
-func (g *GitProtocolParser) readRemainingPackData() ([]byte, error) {
-	var packData []byte
-
-	for g.offset < len(g.data) {
-		packet, err := g.readPacket()
-		if err != nil {
-			// If we can't read more packets, assume remaining data is raw pack data
-			remaining := g.data[g.offset:]
-			if len(remaining) > 0 {
-				packData = append(packData, remaining...)
-			}
-			break
-		}
-
-		if packet == nil {
-			continue // Flush packet
-		}
-
-		if g.isSidebandPacket(packet) {
-			sidebandData, err := g.extractSidebandPackData(packet)
-			if err == nil && sidebandData != nil {
-				packData = append(packData, sidebandData...)
-			}
-		} else {
-			packData = append(packData, packet...)
-		}
-	}
-
-	return packData, nil
-}
-
-func (g *GitProtocolParser) isNAKPacket(packet []byte) bool {
-	return len(packet) >= 3 && string(packet[:3]) == "NAK"
-}
-
-func (g *GitProtocolParser) isACKPacket(packet []byte) bool {
-	return len(packet) >= 3 && string(packet[:3]) == "ACK"
-}
-
-func (g *GitProtocolParser) isPackDataStart(packet []byte) bool {
-	return len(packet) >= 4 && string(packet[:4]) == "PACK"
-}
-
-func (g *GitProtocolParser) isSidebandPacket(packet []byte) bool {
-	// Sideband packets start with a channel byte (1, 2, or 3)
-	return len(packet) > 0 && (packet[0] == 1 || packet[0] == 2 || packet[0] == 3)
-}
-
-func (g *GitProtocolParser) extractSidebandPackData(packet []byte) ([]byte, error) {
-	if len(packet) < 1 {
-		return nil, fmt.Errorf("sideband packet too short")
-	}
-
-	channel := packet[0]
-	data := packet[1:]
-
-	switch channel {
-	case 1:
-		// Channel 1: pack data
-		return data, nil
-	case 2:
-		// Channel 2: progress messages
-		fmt.Printf("Remote: %s", string(data))
-		return nil, nil
-	case 3:
-		// Channel 3: error messages
-		fmt.Printf("Remote error: %s", string(data))
-		return nil, nil
-	default:
-		return nil, fmt.Errorf("unknown sideband channel: %d", channel)
-	}
-}
-
-func (g *GitProtocolParser) safeString(data []byte, maxLen int) string {
-	if len(data) > maxLen {
-		data = data[:maxLen]
-	}
-
-	result := make([]byte, 0, len(data))
-	for _, b := range data {
-		if b >= 32 && b <= 126 {
-			result = append(result, b)
-		} else {
-			result = append(result, '.')
-		}
-	}
-
-	return string(result)
-}
-
 func (p *PackProcessor) verifyPackChecksum() error {
 	if len(p.packData) < 20 {
 		return fmt.Errorf("pack too short for checksum")
@@ -909,9 +723,188 @@ func (p *PackProcessor) storeRawObject(hash string, objType objects.ObjectType, 
 	return nil
 }
 
-func min(a, b int) int {
-	if a < b {
-		return a
+type GitProtocolParser struct {
+	data   []byte
+	offset int
+}
+
+func (g *GitProtocolParser) ExtractPackData() ([]byte, error) {
+	var packData []byte
+
+	for g.offset < len(g.data) {
+		packet, err := g.readPacket()
+		if err != nil {
+			return nil, fmt.Errorf("failed to read packet: %w", err)
+		}
+
+		if packet == nil {
+			// flush packet (0000)
+			continue
+		}
+
+		switch {
+		case g.isNAKPacket(packet):
+			// NAK response from server - negotiation phase
+			continue
+
+		case g.isACKPacket(packet):
+			// ACK response from server - negotiation phase
+			continue
+
+		case g.isPackDataStart(packet):
+			packData = append(packData, packet...)
+
+			remaining, err := g.readRemainingPackData()
+			if err != nil {
+				return nil, fmt.Errorf("failed to read remaining pack data: %w", err)
+			}
+			packData = append(packData, remaining...)
+			return packData, nil
+
+		case g.isSidebandPacket(packet):
+			// sideband packet - extract pack data from channel 1
+			sidebandData, err := g.extractSidebandPackData(packet)
+			if err != nil {
+				return nil, fmt.Errorf("failed to extract sideband data: %w", err)
+			}
+			if sidebandData != nil {
+				packData = append(packData, sidebandData...)
+			}
+
+		default:
+			// unknown packet type, might be pack data without sideband
+			if len(packet) > 0 {
+				packData = append(packData, packet...)
+			}
+		}
 	}
-	return b
+
+	if len(packData) == 0 {
+		return nil, fmt.Errorf("no pack data found in protocol response")
+	}
+
+	return packData, nil
+}
+
+func (g *GitProtocolParser) readPacket() ([]byte, error) {
+	if g.offset+4 > len(g.data) {
+		return nil, fmt.Errorf("insufficient data for packet length")
+	}
+
+	lengthStr := string(g.data[g.offset : g.offset+4])
+	g.offset += 4
+
+	if lengthStr == "0000" {
+		return nil, nil // Flush packet
+	}
+
+	var length int
+	n, err := fmt.Sscanf(lengthStr, "%04x", &length)
+	if err != nil || n != 1 {
+		return nil, fmt.Errorf("invalid packet length: %s", lengthStr)
+	}
+
+	if length < 4 {
+		return nil, fmt.Errorf("invalid packet length: %d", length)
+	}
+
+	dataLength := length - 4
+	if g.offset+dataLength > len(g.data) {
+		return nil, fmt.Errorf("packet data extends beyond available data")
+	}
+
+	packet := g.data[g.offset : g.offset+dataLength]
+	g.offset += dataLength
+
+	return packet, nil
+}
+
+func (g *GitProtocolParser) readRemainingPackData() ([]byte, error) {
+	var packData []byte
+
+	for g.offset < len(g.data) {
+		packet, err := g.readPacket()
+		if err != nil {
+			// If we can't read more packets, assume remaining data is raw pack data
+			remaining := g.data[g.offset:]
+			if len(remaining) > 0 {
+				packData = append(packData, remaining...)
+			}
+			break
+		}
+
+		if packet == nil {
+			continue // Flush packet
+		}
+
+		if g.isSidebandPacket(packet) {
+			sidebandData, err := g.extractSidebandPackData(packet)
+			if err == nil && sidebandData != nil {
+				packData = append(packData, sidebandData...)
+			}
+		} else {
+			packData = append(packData, packet...)
+		}
+	}
+
+	return packData, nil
+}
+
+func (g *GitProtocolParser) isNAKPacket(packet []byte) bool {
+	return len(packet) >= 3 && string(packet[:3]) == "NAK"
+}
+
+func (g *GitProtocolParser) isACKPacket(packet []byte) bool {
+	return len(packet) >= 3 && string(packet[:3]) == "ACK"
+}
+
+func (g *GitProtocolParser) isPackDataStart(packet []byte) bool {
+	return len(packet) >= 4 && string(packet[:4]) == "PACK"
+}
+
+func (g *GitProtocolParser) isSidebandPacket(packet []byte) bool {
+	// Sideband packets start with a channel byte (1, 2, or 3)
+	return len(packet) > 0 && (packet[0] == 1 || packet[0] == 2 || packet[0] == 3)
+}
+
+func (g *GitProtocolParser) extractSidebandPackData(packet []byte) ([]byte, error) {
+	if len(packet) < 1 {
+		return nil, fmt.Errorf("sideband packet too short")
+	}
+
+	channel := packet[0]
+	data := packet[1:]
+
+	switch channel {
+	case 1:
+		// Channel 1: pack data
+		return data, nil
+	case 2:
+		// Channel 2: progress messages
+		fmt.Printf("Remote: %s", string(data))
+		return nil, nil
+	case 3:
+		// Channel 3: error messages
+		fmt.Printf("Remote error: %s", string(data))
+		return nil, nil
+	default:
+		return nil, fmt.Errorf("unknown sideband channel: %d", channel)
+	}
+}
+
+func (g *GitProtocolParser) safeString(data []byte, maxLen int) string {
+	if len(data) > maxLen {
+		data = data[:maxLen]
+	}
+
+	result := make([]byte, 0, len(data))
+	for _, b := range data {
+		if b >= 32 && b <= 126 {
+			result = append(result, b)
+		} else {
+			result = append(result, '.')
+		}
+	}
+
+	return string(result)
 }
