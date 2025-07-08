@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/spf13/cobra"
-	"github.com/unkn0wn-root/git-go/blame"
-	"github.com/unkn0wn-root/git-go/repository"
+	"github.com/unkn0wn-root/git-go/internal/commands/blame"
+	"github.com/unkn0wn-root/git-go/internal/core/repository"
 )
 
 var blameCmd = &cobra.Command{

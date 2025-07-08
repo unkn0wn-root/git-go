@@ -4,9 +4,9 @@ import (
 	"fmt"
 
 	"github.com/spf13/cobra"
-	"github.com/unkn0wn-root/git-go/add"
-	"github.com/unkn0wn-root/git-go/discovery"
-	"github.com/unkn0wn-root/git-go/repository"
+	"github.com/unkn0wn-root/git-go/internal/commands/add"
+	"github.com/unkn0wn-root/git-go/internal/core/discovery"
+	"github.com/unkn0wn-root/git-go/internal/core/repository"
 )
 
 var addCmd = &cobra.Command{

@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"github.com/spf13/cobra"
-	"github.com/unkn0wn-root/git-go/clone"
-	"github.com/unkn0wn-root/git-go/display"
+	"github.com/unkn0wn-root/git-go/internal/commands/clone"
+	"github.com/unkn0wn-root/git-go/pkg/display"
 )
 
 var (
