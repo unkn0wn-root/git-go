@@ -111,7 +111,6 @@ func ShowWorkingTreeDiff(repo *repository.Repository, paths []string) error {
 
 		if !bytes.Equal(indexContent, workingContent) {
 			fileDiff := ComputeFileDiff(indexContent, workingContent, path, path)
-			fmt.Printf("%s\n", display.FormatDiffHeader(path, path))
 			fmt.Print(fileDiff.String())
 		}
 	}
@@ -204,7 +203,6 @@ func ShowStagedDiff(repo *repository.Repository, paths []string) error {
 		}
 
 		fileDiff := ComputeFileDiff(headBlob.Content(), indexBlob.Content(), path, path)
-		fmt.Printf("%s\n", display.FormatDiffHeader(path, path))
 		fmt.Print(fileDiff.String())
 	}
 
