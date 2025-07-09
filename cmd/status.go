@@ -5,8 +5,8 @@ import (
 	"os"
 
 	"github.com/spf13/cobra"
-	"github.com/unkn0wn-root/git-go/internal/core/repository"
 	"github.com/unkn0wn-root/git-go/internal/commands/status"
+	"github.com/unkn0wn-root/git-go/internal/core/repository"
 )
 
 var statusCmd = &cobra.Command{

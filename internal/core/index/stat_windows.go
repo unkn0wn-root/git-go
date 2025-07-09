@@ -8,11 +8,11 @@ package index
 // so i will just stick to the Unix-style filesystem metadata (device ID, inode, UID, GID, creation time) that
 // Windows does not provide.
 import (
- "os"
- "time"
+	"os"
+	"time"
 )
 
 func getStatTimes(fileInfo os.FileInfo) (ctime time.Time, ctimeNs uint32, dev uint32, ino uint32, uid uint32, gid uint32) {
-    _ = Windows_Is_Not_Supported()
-    return
+	_ = Windows_Is_Not_Supported()
+	return
 }

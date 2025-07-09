@@ -15,13 +15,13 @@ type AuthorStats struct {
 }
 
 type LogEntry struct {
-	Hash      string
-	Author    string
-	Email     string
-	Date      time.Time
-	Message   string
-	Parents   []string
-	IsMerge   bool
+	Hash    string
+	Author  string
+	Email   string
+	Date    time.Time
+	Message string
+	Parents []string
+	IsMerge bool
 }
 
 type LogOptions struct {
@@ -260,11 +260,25 @@ func (lf *LogFormatter) FormatAuthorStats(stats map[string]AuthorStats) string {
 var MergeStyle = Style{color: Magenta, bold: true}
 var defaultLogFormatter = NewLogFormatter(defaultFormatter)
 
-func FormatLogEntry(entry LogEntry, options LogOptions) string { return defaultLogFormatter.FormatLogEntry(entry, options) }
-func FormatLogGraph(entries []LogEntry, options LogOptions) string { return defaultLogFormatter.FormatLogGraph(entries, options) }
-func FormatLogStats(totalCommits int, authors map[string]int, dateRange string) string { return defaultLogFormatter.FormatLogStats(totalCommits, authors, dateRange) }
-func FormatShortLog(entries []LogEntry, maxWidth int) string { return defaultLogFormatter.FormatShortLog(entries, maxWidth) }
-func FormatBranchLog(branch string, entries []LogEntry, options LogOptions) string { return defaultLogFormatter.FormatBranchLog(branch, entries, options) }
+func FormatLogEntry(entry LogEntry, options LogOptions) string {
+	return defaultLogFormatter.FormatLogEntry(entry, options)
+}
+func FormatLogGraph(entries []LogEntry, options LogOptions) string {
+	return defaultLogFormatter.FormatLogGraph(entries, options)
+}
+func FormatLogStats(totalCommits int, authors map[string]int, dateRange string) string {
+	return defaultLogFormatter.FormatLogStats(totalCommits, authors, dateRange)
+}
+func FormatShortLog(entries []LogEntry, maxWidth int) string {
+	return defaultLogFormatter.FormatShortLog(entries, maxWidth)
+}
+func FormatBranchLog(branch string, entries []LogEntry, options LogOptions) string {
+	return defaultLogFormatter.FormatBranchLog(branch, entries, options)
+}
 func FormatMergeCommit(entry LogEntry) string { return defaultLogFormatter.FormatMergeCommit(entry) }
-func FormatCommitRange(from, to string, count int) string { return defaultLogFormatter.FormatCommitRange(from, to, count) }
-func FormatAuthorStats(stats map[string]AuthorStats) string { return defaultLogFormatter.FormatAuthorStats(stats) }
+func FormatCommitRange(from, to string, count int) string {
+	return defaultLogFormatter.FormatCommitRange(from, to, count)
+}
+func FormatAuthorStats(stats map[string]AuthorStats) string {
+	return defaultLogFormatter.FormatAuthorStats(stats)
+}

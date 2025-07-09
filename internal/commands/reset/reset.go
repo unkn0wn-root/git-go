@@ -6,21 +6,21 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 const (
-	defaultDirMode       = 0755
-	directoryMode        = 0o040000
-	gitHashLength        = 40
-	minShortHashLength   = 4
-	hashPrefixLength     = 2
-	headRef              = "HEAD"
-	headsPrefix          = "refs/heads/"
-	objectsDir           = "objects"
+	defaultDirMode     = 0755
+	directoryMode      = 0o040000
+	gitHashLength      = 40
+	minShortHashLength = 4
+	hashPrefixLength   = 2
+	headRef            = "HEAD"
+	headsPrefix        = "refs/heads/"
+	objectsDir         = "objects"
 )
 
 type ResetMode int

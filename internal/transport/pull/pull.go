@@ -9,20 +9,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/pack"
-	"github.com/unkn0wn-root/git-go/internal/transport/remote"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/internal/transport/remote"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 const (
-	defaultRemote  = "origin"
-	defaultTimeout = 5 * time.Minute
-	defaultDirMode = 0755
+	defaultRemote   = "origin"
+	defaultTimeout  = 5 * time.Minute
+	defaultDirMode  = 0755
 	defaultFileMode = 0644
-	executableMode = 0755
+	executableMode  = 0755
 )
 
 type PullStrategy int

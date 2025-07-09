@@ -101,4 +101,3 @@ func (e *IndexError) Error() string {
 func (e *IndexError) Unwrap() error {
 	return e.Err
 }
-

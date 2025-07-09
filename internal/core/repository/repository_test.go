@@ -6,8 +6,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 func TestNew(t *testing.T) {

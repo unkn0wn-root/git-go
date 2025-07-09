@@ -6,8 +6,8 @@ import (
 
 	"github.com/spf13/cobra"
 	"github.com/unkn0wn-root/git-go/internal/commands/commit"
-	"github.com/unkn0wn-root/git-go/pkg/display"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/pkg/display"
 )
 
 var (
@@ -51,15 +51,15 @@ var commitCmd = &cobra.Command{
 		}
 
 		if len(parents) == 0 {
-			fmt.Printf("[%s %s %s] %s\n", 
-				display.Branch(branch), 
-				display.Secondary("(root-commit)"), 
-				display.Hash(commitHash), 
+			fmt.Printf("[%s %s %s] %s\n",
+				display.Branch(branch),
+				display.Secondary("(root-commit)"),
+				display.Hash(commitHash),
 				commitMessage)
 		} else {
-			fmt.Printf("[%s %s] %s\n", 
-				display.Branch(branch), 
-				display.Hash(commitHash), 
+			fmt.Printf("[%s %s] %s\n",
+				display.Branch(branch),
+				display.Hash(commitHash),
 				commitMessage)
 		}
 

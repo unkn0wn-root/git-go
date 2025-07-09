@@ -251,15 +251,35 @@ func (cf *CommandFormatter) FormatDuration(d time.Duration) string {
 
 var defaultCommandFormatter = NewCommandFormatter(defaultFormatter)
 
-func FormatPushResult(remote string, updates map[string]RefUpdate, newBranch bool, upstreamSet bool, branch string) string { return defaultCommandFormatter.FormatPushResult(remote, updates, newBranch, upstreamSet, branch) }
-func FormatCloneProgress(repo, progress string) string { return defaultCommandFormatter.FormatCloneProgress(repo, progress) }
-func FormatCommitResult(hash, branch, message string, filesChanged, insertions, deletions int) string { return defaultCommandFormatter.FormatCommitResult(hash, branch, message, filesChanged, insertions, deletions) }
-func FormatResetResult(mode, target string, filesChanged int) string { return defaultCommandFormatter.FormatResetResult(mode, target, filesChanged) }
-func FormatRemoteResult(operation, remote, url string) string { return defaultCommandFormatter.FormatRemoteResult(operation, remote, url) }
-func FormatRemoteList(remotes map[string]string, verbose bool) string { return defaultCommandFormatter.FormatRemoteList(remotes, verbose) }
-func FormatInitResult(path string, bare bool) string { return defaultCommandFormatter.FormatInitResult(path, bare) }
-func FormatBranchList(branches []string, current string) string { return defaultCommandFormatter.FormatBranchList(branches, current) }
-func FormatProgressWithStats(message string, current, total int) string { return defaultCommandFormatter.FormatProgressWithStats(message, current, total) }
-func FormatHintMessage(lines []string) string { return defaultCommandFormatter.FormatHintMessage(lines) }
-func FormatBytes(bytes int64) string { return defaultCommandFormatter.FormatBytes(bytes) }
+func FormatPushResult(remote string, updates map[string]RefUpdate, newBranch bool, upstreamSet bool, branch string) string {
+	return defaultCommandFormatter.FormatPushResult(remote, updates, newBranch, upstreamSet, branch)
+}
+func FormatCloneProgress(repo, progress string) string {
+	return defaultCommandFormatter.FormatCloneProgress(repo, progress)
+}
+func FormatCommitResult(hash, branch, message string, filesChanged, insertions, deletions int) string {
+	return defaultCommandFormatter.FormatCommitResult(hash, branch, message, filesChanged, insertions, deletions)
+}
+func FormatResetResult(mode, target string, filesChanged int) string {
+	return defaultCommandFormatter.FormatResetResult(mode, target, filesChanged)
+}
+func FormatRemoteResult(operation, remote, url string) string {
+	return defaultCommandFormatter.FormatRemoteResult(operation, remote, url)
+}
+func FormatRemoteList(remotes map[string]string, verbose bool) string {
+	return defaultCommandFormatter.FormatRemoteList(remotes, verbose)
+}
+func FormatInitResult(path string, bare bool) string {
+	return defaultCommandFormatter.FormatInitResult(path, bare)
+}
+func FormatBranchList(branches []string, current string) string {
+	return defaultCommandFormatter.FormatBranchList(branches, current)
+}
+func FormatProgressWithStats(message string, current, total int) string {
+	return defaultCommandFormatter.FormatProgressWithStats(message, current, total)
+}
+func FormatHintMessage(lines []string) string {
+	return defaultCommandFormatter.FormatHintMessage(lines)
+}
+func FormatBytes(bytes int64) string        { return defaultCommandFormatter.FormatBytes(bytes) }
 func FormatDuration(d time.Duration) string { return defaultCommandFormatter.FormatDuration(d) }

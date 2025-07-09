@@ -13,8 +13,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/hash"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 const (
@@ -105,7 +105,7 @@ func (idx *Index) Save() error {
 	defer file.Close()
 
 	// get all entries (both staged and committed) and sort them
-    sortedEntries := make([]*IndexEntry, 0, len(idx.entries))
+	sortedEntries := make([]*IndexEntry, 0, len(idx.entries))
 	for _, entry := range idx.entries {
 		sortedEntries = append(sortedEntries, entry)
 	}
@@ -115,9 +115,9 @@ func (idx *Index) Save() error {
 	})
 
 	var buf bytes.Buffer
-	buf.WriteString(indexSignature)                                     // Signature
-	binary.Write(&buf, binary.BigEndian, uint32(indexVersion))          // Version
-	binary.Write(&buf, binary.BigEndian, uint32(len(sortedEntries)))    // Entry count
+	buf.WriteString(indexSignature)                                  // Signature
+	binary.Write(&buf, binary.BigEndian, uint32(indexVersion))       // Version
+	binary.Write(&buf, binary.BigEndian, uint32(len(sortedEntries))) // Entry count
 
 	for _, entry := range sortedEntries {
 		if err := idx.writeIndexEntry(&buf, entry); err != nil {
@@ -292,7 +292,7 @@ func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
 	// git index entry: 62-byte fixed header + variable-length path
 	header := make([]byte, fixedHeaderSize)
 	if _, err := io.ReadFull(file, header); err != nil {
-        return nil, fmt.Errorf("failed to read entry header: %w", err)
+		return nil, fmt.Errorf("failed to read entry header: %w", err)
 	}
 
 	// parse Git index entry fields
@@ -312,7 +312,7 @@ func (idx *Index) readIndexEntry(file io.Reader) (*IndexEntry, error) {
 
 	var pathBytes []byte
 
-    // path length is stored in lower 12 bits of flags
+	// path length is stored in lower 12 bits of flags
 	pathLen := flags & maxPathLength
 	if pathLen == maxPathLength {
 		// path >= 4095 chars: read until null terminator

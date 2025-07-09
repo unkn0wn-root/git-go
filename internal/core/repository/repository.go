@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/hash"
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 const (
@@ -25,14 +25,14 @@ const (
 	refPrefixLength     = 5
 	headRefPrefixLength = 16
 
-	objectsDir    = "objects"
-	refsDir       = "refs"
-	headsDir      = "heads"
-	tagsDir       = "tags"
-	headFile      = "HEAD"
+	objectsDir = "objects"
+	refsDir    = "refs"
+	headsDir   = "heads"
+	tagsDir    = "tags"
+	headFile   = "HEAD"
 
-	refPrefix     = "ref: "
-	headsPrefix   = "ref: refs/heads/"
+	refPrefix   = "ref: "
+	headsPrefix = "ref: refs/heads/"
 
 	defaultBranch = "main"
 )

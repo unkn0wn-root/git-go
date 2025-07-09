@@ -11,15 +11,15 @@ import (
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/pack"
-	"github.com/unkn0wn-root/git-go/internal/transport/remote"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/internal/transport/remote"
 )
 
 const (
-	defaultTimeout       = 2 * time.Minute
-	defaultCloneTimeout  = 10 * time.Minute
-	defaultRemoteName    = "origin"
-	defaultRepoName      = "repository"
+	defaultTimeout      = 2 * time.Minute
+	defaultCloneTimeout = 10 * time.Minute
+	defaultRemoteName   = "origin"
+	defaultRepoName     = "repository"
 	gitSuffix           = ".git"
 	defaultDirMode      = 0755
 	defaultFileMode     = 0644

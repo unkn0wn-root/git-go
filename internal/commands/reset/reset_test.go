@@ -7,10 +7,10 @@ import (
 	"testing"
 	"time"
 
-	giterrors "github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	giterrors "github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 func setupTestRepo(t *testing.T) (*repository.Repository, string, string) {

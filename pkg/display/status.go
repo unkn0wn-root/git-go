@@ -148,10 +148,22 @@ func (sf *StatusFormatter) FormatStatusResult(branch string, entries []StatusEnt
 
 var defaultStatusFormatter = NewStatusFormatter(defaultFormatter)
 
-func FormatFileStatus(status FileStatus) string { return defaultStatusFormatter.FormatFileStatus(status) }
-func FormatBranchHeader(branch string, isInitial bool) string { return defaultStatusFormatter.FormatBranchHeader(branch, isInitial) }
-func FormatStagedSection(entries []StatusEntry) string { return defaultStatusFormatter.FormatStagedSection(entries) }
-func FormatUnstagedSection(entries []StatusEntry) string { return defaultStatusFormatter.FormatUnstagedSection(entries) }
-func FormatUntrackedSection(entries []StatusEntry) string { return defaultStatusFormatter.FormatUntrackedSection(entries) }
+func FormatFileStatus(status FileStatus) string {
+	return defaultStatusFormatter.FormatFileStatus(status)
+}
+func FormatBranchHeader(branch string, isInitial bool) string {
+	return defaultStatusFormatter.FormatBranchHeader(branch, isInitial)
+}
+func FormatStagedSection(entries []StatusEntry) string {
+	return defaultStatusFormatter.FormatStagedSection(entries)
+}
+func FormatUnstagedSection(entries []StatusEntry) string {
+	return defaultStatusFormatter.FormatUnstagedSection(entries)
+}
+func FormatUntrackedSection(entries []StatusEntry) string {
+	return defaultStatusFormatter.FormatUntrackedSection(entries)
+}
 func FormatCleanMessage() string { return defaultStatusFormatter.FormatCleanMessage() }
-func FormatStatusResult(branch string, entries []StatusEntry, isInitial bool) string { return defaultStatusFormatter.FormatStatusResult(branch, entries, isInitial) }
+func FormatStatusResult(branch string, entries []StatusEntry, isInitial bool) string {
+	return defaultStatusFormatter.FormatStatusResult(branch, entries, isInitial)
+}

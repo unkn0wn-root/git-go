@@ -20,17 +20,17 @@ func ComputeObjectHash(objType string, data []byte) string {
 }
 
 func ValidateHash(hash string) bool {
-    n := len(hash)
-    if n != 40 {
-        return false
-    }
-    for i := 0; i<n; i++ {
-        char := hash[i]
-        if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
-            return false
-        }
-    }
-    return true
+	n := len(hash)
+	if n != 40 {
+		return false
+	}
+	for i := 0; i < n; i++ {
+		char := hash[i]
+		if !((char >= '0' && char <= '9') || (char >= 'a' && char <= 'f')) {
+			return false
+		}
+	}
+	return true
 }
 
 func ShortHash(hash string, length int) string {

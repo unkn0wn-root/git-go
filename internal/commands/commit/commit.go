@@ -6,10 +6,10 @@ import (
 	"os/user"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 type CommitOptions struct {
@@ -147,4 +147,3 @@ func getSignatures(authorName, authorEmail string) (*objects.Signature, *objects
 
 	return author, committer, nil
 }
-

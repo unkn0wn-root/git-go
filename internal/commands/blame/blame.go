@@ -7,20 +7,20 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/pkg/display"
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/pkg/display"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 const (
-	shortHashLength     = 8
-	contextWindowSize   = 3
-	unknownAuthor      = "Unknown"
-	timeFormat         = "2006-01-02 15:04:05"
+	shortHashLength   = 8
+	contextWindowSize = 3
+	unknownAuthor     = "Unknown"
+	timeFormat        = "2006-01-02 15:04:05"
 
 	// line numbering starts from 1
-	firstLineNumber    = 1
+	firstLineNumber = 1
 )
 
 type BlameLine struct {

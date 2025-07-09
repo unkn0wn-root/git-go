@@ -4,11 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/unkn0wn-root/git-go/pkg/display"
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/hash"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/pkg/display"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 type LogOptions struct {

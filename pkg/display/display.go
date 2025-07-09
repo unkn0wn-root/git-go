@@ -48,34 +48,34 @@ type Style struct {
 }
 
 var (
-	BranchStyle     = Style{color: BrightCyan, bold: true}
-	RepoStyle       = Style{color: BrightBlue, bold: true}
+	BranchStyle = Style{color: BrightCyan, bold: true}
+	RepoStyle   = Style{color: BrightBlue, bold: true}
 
-	StagedStyle     = Style{color: Green, bold: true}
-	UnstagedStyle   = Style{color: Red, bold: true}
-	UntrackedStyle  = Style{color: BrightRed, bold: true}
-	ModifiedStyle   = Style{color: Yellow, bold: true}
-	DeletedStyle    = Style{color: Red, bold: true}
-	AddedStyle      = Style{color: Green, bold: true}
-	RenamedStyle    = Style{color: Magenta, bold: true}
+	StagedStyle    = Style{color: Green, bold: true}
+	UnstagedStyle  = Style{color: Red, bold: true}
+	UntrackedStyle = Style{color: BrightRed, bold: true}
+	ModifiedStyle  = Style{color: Yellow, bold: true}
+	DeletedStyle   = Style{color: Red, bold: true}
+	AddedStyle     = Style{color: Green, bold: true}
+	RenamedStyle   = Style{color: Magenta, bold: true}
 
-	DiffHeaderStyle = Style{color: BrightWhite, bold: true}
-	DiffAddedStyle  = Style{color: Green}
+	DiffHeaderStyle  = Style{color: BrightWhite, bold: true}
+	DiffAddedStyle   = Style{color: Green}
 	DiffRemovedStyle = Style{color: Red}
 	DiffContextStyle = Style{color: White}
-	DiffPathStyle   = Style{color: BrightYellow, bold: true}
+	DiffPathStyle    = Style{color: BrightYellow, bold: true}
 
-	SuccessStyle    = Style{color: Green, bold: true}
-	WarningStyle    = Style{color: Yellow, bold: true}
-	ErrorStyle      = Style{color: Red, bold: true}
-	InfoStyle       = Style{color: Cyan}
-	HintStyle       = Style{color: BrightBlack, dim: true}
+	SuccessStyle = Style{color: Green, bold: true}
+	WarningStyle = Style{color: Yellow, bold: true}
+	ErrorStyle   = Style{color: Red, bold: true}
+	InfoStyle    = Style{color: Cyan}
+	HintStyle    = Style{color: BrightBlack, dim: true}
 
-	ProgressStyle   = Style{color: BrightCyan}
-	HashStyle       = Style{color: Yellow}
+	ProgressStyle = Style{color: BrightCyan}
+	HashStyle     = Style{color: Yellow}
 
-	EmphasisStyle   = Style{color: BrightWhite, bold: true}
-	SecondaryStyle  = Style{color: BrightBlack}
+	EmphasisStyle  = Style{color: BrightWhite, bold: true}
+	SecondaryStyle = Style{color: BrightBlack}
 )
 
 type Spinner struct {
@@ -154,17 +154,17 @@ func (f *Formatter) Printlnf(style Style, format string, args ...interface{}) {
 }
 
 func (f *Formatter) Hash(hash string, length ...int) string {
-    // ´hacky´ way for optional param
-    if len(length) > 0 {
-        hash = hash[:length[0]]
-    } else {
+	// ´hacky´ way for optional param
+	if len(length) > 0 {
+		hash = hash[:length[0]]
+	} else {
 		hash = hash[:7]
-    }
+	}
 
 	return f.Apply(HashStyle, hash)
 }
 
-func (f *Formatter) Branch(branch string) string { return f.Apply(BranchStyle, branch) }
+func (f *Formatter) Branch(branch string) string   { return f.Apply(BranchStyle, branch) }
 func (f *Formatter) Path(path string) string       { return f.Apply(DiffPathStyle, path) }
 func (f *Formatter) Success(message string) string { return f.Apply(SuccessStyle, message) }
 func (f *Formatter) Warning(message string) string { return f.Apply(WarningStyle, message) }
@@ -174,7 +174,7 @@ func (f *Formatter) Hint(message string) string    { return f.Apply(HintStyle, m
 func (f *Formatter) Emphasis(text string) string   { return f.Apply(EmphasisStyle, text) }
 func (f *Formatter) Secondary(text string) string  { return f.Apply(SecondaryStyle, text) }
 
-func (f *Formatter) Progress(message string) { f.Print(f.Apply(ProgressStyle, "● ") + message) }
+func (f *Formatter) Progress(message string)     { f.Print(f.Apply(ProgressStyle, "● ") + message) }
 func (f *Formatter) ProgressDone(message string) { f.Println(f.Apply(SuccessStyle, "✓ ") + message) }
 func (f *Formatter) ProgressFail(message string) { f.Println(f.Apply(ErrorStyle, "✗ ") + message) }
 
@@ -215,22 +215,24 @@ var defaultFormatter = NewFormatter(os.Stdout)
 func Print(text string, style ...Style)         { defaultFormatter.Print(text, style...) }
 func Println(text string, style ...Style)       { defaultFormatter.Println(text, style...) }
 func Printf(format string, args ...interface{}) { defaultFormatter.Printf(format, args...) }
-func Printlnf(style Style, format string, args ...interface{}) { defaultFormatter.Printlnf(style, format, args...) }
+func Printlnf(style Style, format string, args ...interface{}) {
+	defaultFormatter.Printlnf(style, format, args...)
+}
 
 func Hash(hash string, length ...int) string { return defaultFormatter.Hash(hash, length...) }
-func Branch(branch string) string    { return defaultFormatter.Branch(branch) }
-func Path(path string) string        { return defaultFormatter.Path(path) }
-func Success(message string) string  { return defaultFormatter.Success(message) }
-func Warning(message string) string  { return defaultFormatter.Warning(message) }
-func Error(message string) string    { return defaultFormatter.Error(message) }
-func Info(message string) string     { return defaultFormatter.Info(message) }
-func Hint(message string) string     { return defaultFormatter.Hint(message) }
-func Emphasis(text string) string    { return defaultFormatter.Emphasis(text) }
-func Secondary(text string) string   { return defaultFormatter.Secondary(text) }
+func Branch(branch string) string            { return defaultFormatter.Branch(branch) }
+func Path(path string) string                { return defaultFormatter.Path(path) }
+func Success(message string) string          { return defaultFormatter.Success(message) }
+func Warning(message string) string          { return defaultFormatter.Warning(message) }
+func Error(message string) string            { return defaultFormatter.Error(message) }
+func Info(message string) string             { return defaultFormatter.Info(message) }
+func Hint(message string) string             { return defaultFormatter.Hint(message) }
+func Emphasis(text string) string            { return defaultFormatter.Emphasis(text) }
+func Secondary(text string) string           { return defaultFormatter.Secondary(text) }
 
-func Progress(message string)        { defaultFormatter.Progress(message) }
-func ProgressDone(message string)    { defaultFormatter.ProgressDone(message) }
-func ProgressFail(message string)    { defaultFormatter.ProgressFail(message) }
+func Progress(message string)            { defaultFormatter.Progress(message) }
+func ProgressDone(message string)        { defaultFormatter.ProgressDone(message) }
+func ProgressFail(message string)        { defaultFormatter.ProgressFail(message) }
 func NewSpinner(message string) *Spinner { return defaultFormatter.NewSpinner(message) }
 
 func SetColorEnabled(enabled bool) { defaultFormatter.SetColorEnabled(enabled) }
@@ -247,7 +249,7 @@ func isTerminalColorSupported(w io.Writer) bool {
 			if os.Getenv("NO_COLOR") != "" {
 				return false
 			}
-			if os.Getenv("FORCE_COLOR") != "" || os.Getenv("COLORTERM") != ""  {
+			if os.Getenv("FORCE_COLOR") != "" || os.Getenv("COLORTERM") != "" {
 				return true
 			}
 
@@ -257,13 +259,13 @@ func isTerminalColorSupported(w io.Writer) bool {
 			}
 
 			return strings.Contains(term, "color") ||
-				   strings.Contains(term, "xterm") ||
-				   strings.Contains(term, "screen") ||
-				   strings.Contains(term, "tmux") ||
-				   strings.Contains(term, "rxvt") ||
-				   strings.Contains(term, "linux") ||
-				   strings.Contains(term, "cygwin") ||
-				   term == "ansi"
+				strings.Contains(term, "xterm") ||
+				strings.Contains(term, "screen") ||
+				strings.Contains(term, "tmux") ||
+				strings.Contains(term, "rxvt") ||
+				strings.Contains(term, "linux") ||
+				strings.Contains(term, "cygwin") ||
+				term == "ansi"
 		}
 	}
 

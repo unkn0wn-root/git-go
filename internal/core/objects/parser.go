@@ -11,22 +11,22 @@ import (
 )
 
 const (
-	gitHashLength     = 20
-	nullTerminator    = "\x00"
+	gitHashLength  = 20
+	nullTerminator = "\x00"
 
 	// format constants
-	headerParts       = 2
+	headerParts = 2
 
 	// commit header keys
-	treeHeader        = "tree"
-	parentHeader      = "parent"
-	authorHeader      = "author"
-	committerHeader   = "committer"
+	treeHeader      = "tree"
+	parentHeader    = "parent"
+	authorHeader    = "author"
+	committerHeader = "committer"
 
 	// radix for integer parsing
-	decimalBase       = 10
-	hexadecimalBase   = 16
-	int64BitSize      = 64
+	decimalBase     = 10
+	hexadecimalBase = 16
+	int64BitSize    = 64
 )
 
 func ParseObject(objType ObjectType, data []byte) (Object, error) {

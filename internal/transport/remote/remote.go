@@ -17,36 +17,36 @@ import (
 	"strings"
 	"time"
 
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/hash"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
 	"github.com/unkn0wn-root/git-go/internal/transport/ssh"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 )
 
 const (
-	httpTimeout       = 30 * time.Second
-	dialTimeout       = 10 * time.Second
-	keepAliveTimeout  = 30 * time.Second
-	packetHeaderSize  = 4
+	httpTimeout      = 30 * time.Second
+	dialTimeout      = 10 * time.Second
+	keepAliveTimeout = 30 * time.Second
+	packetHeaderSize = 4
 
-    // This here is for git(hub|lab) when you try to push to remote repo without any files (plain)
-	nullHash          = "0000000000000000000000000000000000000000"
+	// This here is for git(hub|lab) when you try to push to remote repo without any files (plain)
+	nullHash = "0000000000000000000000000000000000000000"
 
 	// Git protocol
-	servicePrefix     = "# service="
-	gitUploadPack     = "git-upload-pack"
-	gitReceivePack    = "git-receive-pack"
-	flushPacket       = "0000"
-	lsRefsCommand     = "0014command=ls-refs0001"
-	doneCommand       = "0009done\n"
+	servicePrefix  = "# service="
+	gitUploadPack  = "git-upload-pack"
+	gitReceivePack = "git-receive-pack"
+	flushPacket    = "0000"
+	lsRefsCommand  = "0014command=ls-refs0001"
+	doneCommand    = "0009done\n"
 
 	// Content types
-	uploadPackType    = "application/x-git-upload-pack-request"
-	receivePackType   = "application/x-git-receive-pack-request"
+	uploadPackType  = "application/x-git-upload-pack-request"
+	receivePackType = "application/x-git-receive-pack-request"
 
 	// Default capabilities
 	defaultCapabilities = "multi_ack_detailed no-done side-band-64k thin-pack ofs-delta"
-	pushCapabilities   = "report-status side-band-64k"
+	pushCapabilities    = "report-status side-band-64k"
 )
 
 type Protocol int
@@ -702,7 +702,7 @@ func LoadAuthConfig() (*AuthConfig, error) {
 		auth.Password = password
 	}
 
-    // ssh
+	// ssh
 	sshKeyPath := filepath.Join(homeDir, ".ssh", "id_rsa")
 	if _, err := os.Stat(sshKeyPath); err == nil {
 		auth.SSHKey = sshKeyPath

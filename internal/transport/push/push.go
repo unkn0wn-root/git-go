@@ -13,32 +13,32 @@ import (
 	"time"
 
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
-	"github.com/unkn0wn-root/git-go/internal/transport/remote"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/internal/transport/remote"
 )
 
 const (
-	defaultRemote     = "origin"
-	defaultTimeout    = 2 * time.Minute
-	defaultFileMode   = 0644
-	shortHashLength   = 7
+	defaultRemote   = "origin"
+	defaultTimeout  = 2 * time.Minute
+	defaultFileMode = 0644
+	shortHashLength = 7
 
 	// Pack file
-	packSignature     = "PACK"
-	packVersion       = 2
+	packSignature = "PACK"
+	packVersion   = 2
 
 	// Git object types for pack format
-	OBJ_COMMIT         = 1
-	OBJ_TREE           = 2
-	OBJ_BLOB           = 3
+	OBJ_COMMIT = 1
+	OBJ_TREE   = 2
+	OBJ_BLOB   = 3
 
-	sizeMask          = 0xF
-	typeBits          = 4
-	continuationBit   = 0x80
-	sevenBitMask      = 0x7F
+	sizeMask        = 0xF
+	typeBits        = 4
+	continuationBit = 0x80
+	sevenBitMask    = 0x7F
 
-	headsPrefix       = "refs/heads/"
-	tagsPrefix        = "refs/tags/"
+	headsPrefix = "refs/heads/"
+	tagsPrefix  = "refs/tags/"
 )
 
 type RefUpdateStatus int

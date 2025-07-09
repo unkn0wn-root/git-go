@@ -7,17 +7,17 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/unkn0wn-root/git-go/pkg/display"
-	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/internal/core/index"
 	"github.com/unkn0wn-root/git-go/internal/core/objects"
 	"github.com/unkn0wn-root/git-go/internal/core/repository"
+	"github.com/unkn0wn-root/git-go/pkg/display"
+	"github.com/unkn0wn-root/git-go/pkg/errors"
 	"github.com/unkn0wn-root/git-go/utils"
 )
 
 const (
-    maxLinesForMemory = 10000
-    chunkSize         = 1000
+	maxLinesForMemory = 10000
+	chunkSize         = 1000
 )
 
 type LineType int
@@ -576,7 +576,7 @@ func mergeOverlappingHunks(hunks []DiffHunk) []DiffHunk {
 		currentEnd := current.OldStart + current.OldCount
 		nextStart := next.OldStart
 
-		if nextStart <= currentEnd + 6 { // Merge if within 6 lines
+		if nextStart <= currentEnd+6 { // Merge if within 6 lines
 			current.Lines = append(current.Lines, next.Lines...)
 			calculateHunkCounts(&current)
 		} else {
@@ -652,4 +652,3 @@ func calculateHunkCounts(hunk *DiffHunk) {
 	hunk.OldCount = oldCount
 	hunk.NewCount = newCount
 }
-
